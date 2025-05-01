@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
-import User from '../models/User'
+import { User } from '../models/User'
+import { IUser } from '../types/user'
 
 export const addTeddies = async (req: Request, res: Response) => {
   try {
@@ -33,14 +34,11 @@ export const addBadge = async (req: Request, res: Response) => {
 
     const user = await User.findByIdAndUpdate(
       userId,
-      { 
-        $addToSet: { badges: badge },
-        $inc: { teddies: 100 } // Award 100 Teddies for each new badge
-      },
+      { $addToSet: { badges: badge } },
       { new: true }
     )
 
-    res.json({ badges: user?.badges, teddies: user?.teddies })
+    res.json({ badges: user?.badges })
   } catch (error) {
     res.status(500).json({ message: 'Error adding badge', error })
   }
@@ -62,15 +60,14 @@ export const updateStreak = async (req: Request, res: Response) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    if (!user.lastLoginDate) {
+    if (!user.streak.lastLogin) {
       // First login
-      user.streak = 1
-      user.lastLoginDate = today
+      user.streak = { count: 1, lastLogin: today }
       await user.save()
-      return res.json({ streak: user.streak })
+      return res.json({ streak: user.streak.count })
     }
 
-    const lastLogin = new Date(user.lastLoginDate)
+    const lastLogin = new Date(user.streak.lastLogin)
     lastLogin.setHours(0, 0, 0, 0)
 
     const diffTime = Math.abs(today.getTime() - lastLogin.getTime())
@@ -78,12 +75,12 @@ export const updateStreak = async (req: Request, res: Response) => {
 
     if (diffDays === 1) {
       // Consecutive day
-      user.streak += 1
+      user.streak.count += 1
       let bonusTeddies = 0
 
-      if (user.streak === 1) bonusTeddies = 100
-      else if (user.streak === 2) bonusTeddies = 150
-      else if (user.streak === 5) {
+      if (user.streak.count === 1) bonusTeddies = 100
+      else if (user.streak.count === 2) bonusTeddies = 150
+      else if (user.streak.count === 5) {
         bonusTeddies = 500
         if (!user.badges.includes('streak_master')) {
           user.badges.push('streak_master')
@@ -93,14 +90,14 @@ export const updateStreak = async (req: Request, res: Response) => {
       user.teddies += bonusTeddies
     } else if (diffDays > 1) {
       // Streak broken
-      user.streak = 1
+      user.streak.count = 1
     }
 
-    user.lastLoginDate = today
+    user.streak.lastLogin = today
     await user.save()
 
     res.json({ 
-      streak: user.streak,
+      streak: user.streak.count,
       teddies: user.teddies,
       badges: user.badges
     })

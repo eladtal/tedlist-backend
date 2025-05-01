@@ -1,5 +1,5 @@
 import express from 'express';
-import { auth } from '../middleware/auth';
+import auth from '../middleware/auth';
 import { getSentDeals, getReceivedDeals } from '../controllers/dealController';
 
 const router = express.Router();

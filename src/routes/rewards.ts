@@ -1,5 +1,5 @@
-import { Router } from 'express'
-import { authenticate } from '../middleware/auth'
+import express from 'express'
+import authenticate from '../middleware/auth'
 import {
   addTeddies,
   addBadge,
@@ -7,7 +7,7 @@ import {
   updateOnboardingProgress
 } from '../controllers/userRewardsController'
 
-const router = Router()
+const router = express.Router()
 
 // All routes require authentication
 router.use(authenticate)
