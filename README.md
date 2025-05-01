@@ -1,2 +1,0 @@
-# tedlist-backend
-tedlist-backend
