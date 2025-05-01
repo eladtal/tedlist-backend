@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 import auth from '../middleware/auth';
 import multer from 'multer';
 import path from 'path';

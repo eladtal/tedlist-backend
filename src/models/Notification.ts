@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { IUser } from '../types/auth';
+import { IUser } from '../types/user';
 import { IItem } from './Item';
 
 export interface INotification extends Document {

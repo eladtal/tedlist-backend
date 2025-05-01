@@ -1,15 +1,17 @@
-const express = require('express');
-const router = express.Router();
-const auth = require('../middleware/auth').default;
-const { 
+import express from 'express';
+import auth from '../middleware/auth';
+import { AuthRequest } from '../types/auth';
+import { 
   startTradingSession,
   getAvailableItems,
   swipeItem,
   resetSwipes,
   acceptTrade,
   declineTrade
-} = require('../controllers/tradingController');
-const { createNotification } = require('../controllers/notificationController');
+} from '../controllers/tradingController';
+import { createNotification } from '../controllers/notificationController';
+
+const router = express.Router();
 
 /** @typedef {import('../types/auth').AuthRequest} AuthRequest */
 /** @typedef {import('express').Response} Response */
@@ -33,4 +35,4 @@ router.post('/accept', auth, acceptTrade);
 // Decline a trade request
 router.post('/decline', auth, declineTrade);
 
-module.exports = router; 
+export default router; 

@@ -3,9 +3,9 @@ declare global {
   var heartbeatInterval: NodeJS.Timeout | undefined;
 }
 
-const express = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+import express from 'express';
+import cors from 'cors';
+import bodyParser from 'body-parser';
 import type { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';

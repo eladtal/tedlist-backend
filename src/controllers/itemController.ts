@@ -12,17 +12,7 @@ interface ItemParams extends ParamsDictionary {
 // Define custom request types
 interface CreateItemRequest extends Request {
   user?: AuthRequest['user'];
-  files?: Array<{
-    fieldname: string;
-    originalname: string;
-    encoding: string;
-    mimetype: string;
-    size: number;
-    destination: string;
-    filename: string;
-    path: string;
-    buffer: Buffer;
-  }>;
+  files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
 }
 
 // Get all items
@@ -66,12 +56,24 @@ export const getAllItems: RequestHandler = async (req: Request, res: Response) =
 };
 
 // Create new item
-export const createItem: RequestHandler = async (req: Request, res: Response) => {
+export const createItem: RequestHandler = async (req: CreateItemRequest, res: Response) => {
   try {
-    const item = new Item(req.body);
+    if (!req.user?._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const files = Array.isArray(req.files) ? req.files : req.files?.images || [];
+    const itemData = {
+      ...req.body,
+      userId: req.user._id,
+      images: files.map(file => `/uploads/${file.filename}`)
+    };
+
+    const item = new Item(itemData);
     await item.save();
     res.status(201).json(item);
   } catch (error) {
+    console.error('Error creating item:', error);
     res.status(500).json({ message: 'Error creating item' });
   }
 };

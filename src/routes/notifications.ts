@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 import type { Request, Response } from 'express';
 import type { AuthRequest } from '../types/auth';
 import auth from '../middleware/auth';

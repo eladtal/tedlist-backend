@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { Response, NextFunction } from 'express';
-import { IUser, AuthRequest } from '../types/auth';
+import { AuthRequest } from '../types/auth';
+import { IUser } from '../types/user';
 import { User } from '../models/User';
 
 const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {

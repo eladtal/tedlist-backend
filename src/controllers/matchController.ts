@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import Match from '../models/Match'
+import { Match } from '../models/Match'
 import User from '../models/User'
-import { IUser } from '../models/User'
+import { IUser } from '../types/user'
 
 export const createMatch = async (req: Request, res: Response) => {
   try {
