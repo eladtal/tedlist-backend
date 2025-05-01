@@ -43,10 +43,22 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
+    console.log('Login attempt with body:', { email: req.body.email, passwordLength: req.body?.password?.length });
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    console.log('User found:', user ? 'yes' : 'no');
+    
+    if (!user) {
+      console.log('Login failed: User not found');
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    console.log('Password match:', passwordMatch);
+
+    if (!passwordMatch) {
+      console.log('Login failed: Password mismatch');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -56,28 +68,45 @@ export const login = async (req: Request, res: Response) => {
       { expiresIn: '7d' }
     );
 
-    res.json({ token, user });
+    console.log('Login successful for user:', user.email);
+    res.json({ token, user: generateUserResponse(user) });
   } catch (error) {
+    console.error('Login error:', error);
     res.status(500).json({ message: 'Error logging in' });
   }
 };
 
 export const validateToken = async (req: Request, res: Response) => {
   try {
+    console.log('Token validation request received');
     const token = req.header('Authorization')?.replace('Bearer ', '');
+    
     if (!token) {
+      console.log('No token provided in request');
       return res.status(401).json({ message: 'No token provided' });
     }
 
+    console.log('Verifying token');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
+    console.log('Token verified, looking up user');
+    
     const user = await User.findById(decoded.userId);
+    console.log('User lookup result:', user ? 'found' : 'not found');
     
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
 
-    res.json({ user });
+    console.log('Token validation successful');
+    res.json({ user: generateUserResponse(user) });
   } catch (error) {
-    res.status(401).json({ message: 'Invalid token' });
+    console.error('Token validation error:', error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    res.status(500).json({ message: 'Server error during validation' });
   }
 }; 

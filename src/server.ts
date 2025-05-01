@@ -13,10 +13,10 @@ import path from 'path';
 import { createServer } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
-import itemsRouter from './routes/items';
 import authRouter from './routes/auth';
-import tradingRouter from './routes/trading';
+import itemsRouter from './routes/items';
 import notificationsRouter from './routes/notifications';
+import dealsRouter from './routes/deals';
 
 interface JwtPayload {
   userId: string;
@@ -29,16 +29,52 @@ interface WebSocketWithData extends WebSocket {
   isAlive?: boolean;
 }
 
+// Load environment variables first
 dotenv.config();
 
 const app = express();
-const httpServer = createServer(app);
+const server = createServer(app);
+
+// Consolidated CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://tedlist.onrender.com'
+    : ['http://localhost:3000', 'http://localhost:8000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// Apply middleware
+app.use(cors(corsOptions));
+// Use bodyParser for JSON and URL-encoded data
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Debug middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// Register routes
+app.use('/api/auth', authRouter);
+app.use('/api/items', itemsRouter);
+app.use('/api/deals', dealsRouter);
+app.use('/api/notifications', notificationsRouter);
+
+// WebSocket setup
 const wss = new WebSocketServer({ 
-  server: httpServer,
+  server: server,
   path: '/ws',
-  verifyClient: ({ origin, req }, callback) => {
-    // Allow connections from localhost:3000 (frontend) and localhost:8000 (backend)
+  verifyClient: ({ origin }, callback) => {
     const allowedOrigins = ['http://localhost:3000', 'http://localhost:8000'];
+    if (process.env.NODE_ENV === 'production') {
+      allowedOrigins.push('https://tedlist.onrender.com');
+    }
     if (allowedOrigins.includes(origin)) {
       callback(true);
     } else {
@@ -195,43 +231,19 @@ wss.on('error', (error) => {
   console.error('WebSocket server error:', error);
 });
 
-// Middleware
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://tedlist.onrender.com'
-    : 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
-app.use(bodyParser.json());
-
-// Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// Debug middleware
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log(`${req.method} ${req.path}`, req.body);
-  next();
-});
-
-// Routes
-app.use('/api/items', itemsRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/trading', tradingRouter);
-app.use('/api/notifications', notificationsRouter);
-
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/tedlist')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Error handling
+// Error handling middleware
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error:', err);
+  res.status(500).json({ 
+    success: false,
+    message: 'Something went wrong!',
+    error: err.message 
+  });
 });
 
 // Health check endpoint
@@ -241,7 +253,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Start server
 const PORT = process.env.PORT || 8000;
-httpServer.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 

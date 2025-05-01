@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthRequest } from '../types/auth';
 import { Notification } from '../models/Notification';
 import { User } from '../models/User';
@@ -6,46 +6,100 @@ import { connectedUsers } from '../server';
 import mongoose from 'mongoose';
 import WebSocket from 'ws';
 
+// Get all notifications for the authenticated user
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ message: 'User not authenticated' });
+      return res.status(401).json({ 
+        success: false,
+        message: 'User not authenticated' 
+      });
     }
 
-    console.log('Fetching notifications for user:', req.user._id);
     const notifications = await Notification.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
       .populate('fromUser', 'name avatar')
-      .populate('item', 'title images description condition')
-      .sort({ createdAt: -1 });
+      .populate('item', 'title images description condition');
 
-    console.log('Found notifications:', notifications.length);
+    // Transform notifications to match frontend expectations
+    const transformedNotifications = notifications.map(notification => ({
+      _id: notification._id,
+      type: notification.type,
+      message: notification.message,
+      read: notification.read,
+      createdAt: notification.createdAt,
+      fromUser: notification.fromUser,
+      item: notification.item
+    }));
+
     res.json({
       success: true,
-      notifications
+      notifications: transformedNotifications
     });
   } catch (error) {
     console.error('Error fetching notifications:', error);
-    res.status(500).json({ message: 'Error fetching notifications', error });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error fetching notifications' 
+    });
   }
 };
 
+// Mark a notification as read
 export const markAsRead = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    const { notificationId } = req.body;
+    
+    if (!notificationId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Notification ID is required' 
+      });
     }
 
-    const { notificationId } = req.params;
-    console.log('Marking notification as read:', notificationId);
-    await Notification.findByIdAndUpdate(notificationId, { read: true });
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'User not authenticated' 
+      });
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      { _id: notificationId, user: req.user._id },
+      { read: true },
+      { new: true }
+    ).populate('fromUser', 'name avatar')
+      .populate('item', 'title images description condition');
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    // Transform notification to match frontend expectations
+    const transformedNotification = {
+      _id: notification._id,
+      type: notification.type,
+      message: notification.message,
+      read: notification.read,
+      createdAt: notification.createdAt,
+      fromUser: notification.fromUser,
+      item: notification.item
+    };
 
     res.json({
       success: true,
-      message: 'Notification marked as read'
+      message: 'Notification marked as read',
+      notification: transformedNotification
     });
   } catch (error) {
     console.error('Error marking notification as read:', error);
-    res.status(500).json({ message: 'Error updating notification', error });
+    res.status(500).json({ 
+      success: false,
+      message: 'Error updating notification' 
+    });
   }
 };
 

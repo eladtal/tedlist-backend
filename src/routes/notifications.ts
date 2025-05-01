@@ -118,4 +118,62 @@ router.post('/mark-all-read', auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Mark a notification as read
+router.post('/mark-read', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { notificationId } = req.body;
+    
+    if (!notificationId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Notification ID is required' 
+      });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'User not authenticated' 
+      });
+    }
+
+    const notification = await Notification.findOneAndUpdate(
+      { _id: notificationId, user: req.user._id },
+      { read: true },
+      { new: true }
+    ).populate('fromUser', 'name avatar')
+      .populate('item', 'title images description condition');
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    // Transform the response to match frontend expectations
+    const transformedNotification = {
+      _id: notification._id,
+      type: notification.type,
+      message: notification.message,
+      read: notification.read,
+      createdAt: notification.createdAt,
+      fromUser: notification.fromUser,
+      item: notification.item
+    };
+
+    res.json({
+      success: true,
+      message: 'Notification marked as read',
+      notification: transformedNotification
+    });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error updating notification' 
+    });
+  }
+});
+
 export default router; 
