@@ -7,6 +7,7 @@ import itemsRouter from './routes/items';
 import tradingRouter from './routes/trading';
 import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
+import adminRouter from './routes/admin';
 import { config } from './config';
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/api/items', itemsRouter);
 app.use('/api/trading', tradingRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/deals', dealsRouter);
+app.use('/api/admin', adminRouter);
 
 // Connect to MongoDB
 mongoose.connect(config.mongoUri)

@@ -1,8 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { IUser } from '../types/user';
 
-const userSchema = new mongoose.Schema<IUser>(
+interface UserMethods {
+  comparePassword(candidatePassword: string): Promise<boolean>;
+}
+
+type UserModel = mongoose.Model<IUser, {}, UserMethods>;
+
+const userSchema = new Schema<IUser, UserModel, UserMethods>(
   {
     name: {
       type: String,
@@ -39,6 +45,14 @@ const userSchema = new mongoose.Schema<IUser>(
         default: null,
       },
     },
+    isAdmin: {
+      type: Boolean,
+      default: false,
+    },
+    adminPrivileges: {
+      type: [String],
+      default: [],
+    },
     onboardingProgress: {
       type: Number,
       default: 0,
@@ -49,14 +63,17 @@ const userSchema = new mongoose.Schema<IUser>(
           id: String,
           progress: Number,
           completed: Boolean,
-          completedAt: Date,
+          completedAt: {
+            type: Date,
+            required: false
+          },
         },
       ],
       default: [],
     },
     tradingSession: {
       activeItemId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: 'Item',
       },
       startedAt: {
@@ -77,6 +94,14 @@ const userSchema = new mongoose.Schema<IUser>(
       ],
       default: [],
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    }
   },
   {
     timestamps: true,
@@ -107,4 +132,4 @@ userSchema.methods.comparePassword = async function(candidatePassword: string): 
   }
 };
 
-export const User = mongoose.model<IUser>('User', userSchema); 
+export const User = mongoose.model<IUser, UserModel>('User', userSchema); 

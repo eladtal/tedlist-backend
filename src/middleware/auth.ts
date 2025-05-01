@@ -3,27 +3,31 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../types/auth';
 import { IUser } from '../types/user';
 import { User } from '../models/User';
+import { config } from '../config';
 
 const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const token = req.get('Authorization')?.replace('Bearer ', '');
+    const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      throw new Error('No token provided');
+      return res.status(401).json({ message: 'No auth token' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { userId: string };
-    const user = await User.findOne({ _id: decoded.userId });
+    const decoded = jwt.verify(token, config.jwtSecret) as { _id: string };
+    const user = await User.findById(decoded._id);
 
     if (!user) {
-      throw new Error('User not found');
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    if (user.isDeleted) {
+      return res.status(401).json({ message: 'Account has been deleted' });
     }
 
     req.user = user;
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    res.status(401).json({ error: 'Please authenticate.' });
+    res.status(401).json({ message: 'Please authenticate' });
   }
 };
 

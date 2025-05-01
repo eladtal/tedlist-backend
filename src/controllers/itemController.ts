@@ -4,6 +4,7 @@ import { AuthRequest } from '../types/auth';
 import { Item } from '../models/Item';
 import { RequestHandler } from 'express-serve-static-core';
 import multer from 'multer';
+import { IUser } from '../types/user';
 
 interface ItemParams extends ParamsDictionary {
   id: string;
@@ -11,7 +12,7 @@ interface ItemParams extends ParamsDictionary {
 
 // Define custom request types
 interface CreateItemRequest extends Request {
-  user?: AuthRequest['user'];
+  user?: IUser;
   files?: { [fieldname: string]: Express.Multer.File[] } | Express.Multer.File[];
 }
 

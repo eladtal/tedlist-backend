@@ -9,7 +9,9 @@ const generateUserResponse = (user: any) => ({
   name: user.name,
   email: user.email,
   avatar: user.avatar || getDefaultAvatar(user.name),
-  teddies: user.teddies
+  teddies: user.teddies,
+  isAdmin: user.isAdmin,
+  adminPrivileges: user.adminPrivileges
 });
 
 export const register = async (req: Request, res: Response) => {
@@ -43,36 +45,36 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    console.log('Login attempt with body:', { email: req.body.email, passwordLength: req.body?.password?.length });
     const { email, password } = req.body;
+
+    // Find user by email
     const user = await User.findOne({ email });
-    
-    console.log('User found:', user ? 'yes' : 'no');
-    
     if (!user) {
-      console.log('Login failed: User not found');
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    console.log('Password match:', passwordMatch);
-
-    if (!passwordMatch) {
-      console.log('Login failed: Password mismatch');
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Check if user is deleted
+    if (user.isDeleted) {
+      return res.status(401).json({ message: 'This account has been deleted' });
     }
 
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '7d' }
-    );
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
 
-    console.log('Login successful for user:', user.email);
-    res.json({ token, user: generateUserResponse(user) });
+    // Generate JWT token
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET || 'your-secret-key');
+
+    // Send response
+    res.json({
+      token,
+      user: generateUserResponse(user)
+    });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ message: 'Error logging in' });
+    res.status(500).json({ message: 'Server error' });
   }
 };
 

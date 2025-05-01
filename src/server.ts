@@ -18,6 +18,7 @@ import itemsRouter from './routes/items';
 import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
 import tradingRouter from './routes/trading';
+import adminRouter from './routes/admin';
 
 interface JwtPayload {
   userId: string;
@@ -38,9 +39,7 @@ const server = createServer(app);
 
 // Consolidated CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://tedlist.onrender.com'
-    : ['http://localhost:3000', 'http://localhost:8000'],
+  origin: '*',  // Allow all origins in development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -67,6 +66,7 @@ app.use('/api/items', itemsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/deals', dealsRouter);
 app.use('/api/trading', tradingRouter);
+app.use('/api/admin', adminRouter);
 
 // WebSocket setup
 const wss = new WebSocketServer({ 
