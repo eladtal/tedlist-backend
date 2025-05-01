@@ -35,6 +35,7 @@ export const getAllItems: RequestHandler = async (req: Request, res: Response) =
       condition: item.condition,
       type: item.type,
       status: item.status,
+      createdAt: item.createdAt,
       user: {
         name: item.userId ? (item.userId as any).name : 'Unknown User',
         _id: item.userId ? item.userId.toString() : 'unknown'
@@ -111,6 +112,7 @@ export const getUserItems: RequestHandler = async (req: AuthRequest, res: Respon
       condition: item.condition,
       type: item.type,
       status: item.status,
+      createdAt: item.createdAt,
       user: {
         name: item.userId ? (item.userId as any).name : 'Unknown User',
         _id: item.userId.toString()

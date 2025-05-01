@@ -296,9 +296,15 @@ export const resetSwipes = async (req: AuthRequest, res: Response) => {
       'tradingSession.startedAt': null
     });
 
+    // Reset all items' status to 'available'
+    await Item.updateMany(
+      { status: 'traded' },
+      { status: 'available' }
+    );
+
     res.json({
       success: true,
-      message: 'Swipes reset successfully'
+      message: 'Swipes and traded items reset successfully'
     });
   } catch (error) {
     console.error('Error resetting swipes:', error);

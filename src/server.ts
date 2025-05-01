@@ -17,6 +17,7 @@ import authRouter from './routes/auth';
 import itemsRouter from './routes/items';
 import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
+import tradingRouter from './routes/trading';
 
 interface JwtPayload {
   userId: string;
@@ -63,8 +64,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Register routes
 app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
-app.use('/api/deals', dealsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/deals', dealsRouter);
+app.use('/api/trading', tradingRouter);
 
 // WebSocket setup
 const wss = new WebSocketServer({ 
