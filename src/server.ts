@@ -20,6 +20,7 @@ import dealsRouter from './routes/deals';
 import tradingRouter from './routes/trading';
 import adminRouter from './routes/admin';
 import fs from 'fs';
+import multer from 'multer';
 
 interface JwtPayload {
   userId: string;
@@ -50,14 +51,40 @@ app.use(cors({
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Serve static files from uploads directory with caching headers
+app.use('/uploads', (req, res, next) => {
+  // Set cache control headers for better performance
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+  next();
+}, express.static(path.join(__dirname, '../uploads')));
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+// Error handling for file uploads
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        message: 'File is too large. Maximum size is 5MB.'
+      });
+    }
+    return res.status(400).json({
+      message: 'File upload error: ' + err.message
+    });
+  }
+  
+  if (err.message === 'Only image files are allowed!') {
+    return res.status(400).json({
+      message: err.message
+    });
+  }
+  
+  next(err);
+});
 
 // Debug middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
