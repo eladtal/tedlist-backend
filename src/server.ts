@@ -51,21 +51,20 @@ app.use(cors({
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files from uploads directory with caching headers
-app.use('/uploads', (req, res, next) => {
-  // Set cache control headers for better performance
-  res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow cross-origin requests
-  next();
-}, express.static(process.env.NODE_ENV === 'production' ? '/uploads' : path.join(__dirname, '../uploads')));
+const uploadsPath = process.env.NODE_ENV === 'production' 
+  ? '/opt/render/project/src/uploads'
+  : path.join(__dirname, '../uploads');
 
-// Create uploads directory if it doesn't exist (development only)
-if (process.env.NODE_ENV !== 'production') {
-  const uploadsDir = path.join(__dirname, '../uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
+// Ensure uploads directory exists
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
 }
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsPath, {
+  maxAge: '1d', // Cache for 1 day
+  fallthrough: false // Return 404 if file not found
+}));
 
 // Error handling for file uploads
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
