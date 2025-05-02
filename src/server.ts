@@ -19,6 +19,7 @@ import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
 import tradingRouter from './routes/trading';
 import adminRouter from './routes/admin';
+import fs from 'fs';
 
 interface JwtPayload {
   userId: string;
@@ -37,22 +38,26 @@ dotenv.config();
 const app = express();
 const server = createServer(app);
 
-// Consolidated CORS configuration
-const corsOptions = {
-  origin: '*',  // Allow all origins in development
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://tedlist.onrender.com']
+    : ['http://localhost:3000', 'http://localhost:8000'],
+  credentials: true
+}));
 
-// Apply middleware
-app.use(cors(corsOptions));
 // Use bodyParser for JSON and URL-encoded data
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Debug middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
