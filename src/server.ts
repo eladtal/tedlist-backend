@@ -55,13 +55,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', (req, res, next) => {
   // Set cache control headers for better performance
   res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 hours
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow cross-origin requests
   next();
-}, express.static(path.join(__dirname, '../uploads')));
+}, express.static(process.env.NODE_ENV === 'production' ? '/uploads' : path.join(__dirname, '../uploads')));
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Create uploads directory if it doesn't exist (development only)
+if (process.env.NODE_ENV !== 'production') {
+  const uploadsDir = path.join(__dirname, '../uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
 }
 
 // Error handling for file uploads

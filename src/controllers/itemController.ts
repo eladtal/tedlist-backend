@@ -5,6 +5,7 @@ import { Item } from '../models/Item';
 import { RequestHandler } from 'express-serve-static-core';
 import multer from 'multer';
 import { IUser } from '../types/user';
+import { getRelativePath } from '../utils/storage';
 
 interface ItemParams extends ParamsDictionary {
   id: string;
@@ -68,7 +69,7 @@ export const createItem: RequestHandler = async (req: CreateItemRequest, res: Re
     const itemData = {
       ...req.body,
       userId: req.user._id,
-      images: files.map(file => `/uploads/${file.filename}`)
+      images: files.map(file => getRelativePath(file.filename))
     };
 
     const item = new Item(itemData);
