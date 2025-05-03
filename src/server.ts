@@ -42,7 +42,7 @@ const server = createServer(app);
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://tedlist.onrender.com']
+    ? ['https://tedlist.onrender.com', 'https://tedlist-backend.onrender.com']
     : ['http://localhost:3000', 'http://localhost:8000'],
   credentials: true
 }));
@@ -125,6 +125,7 @@ const wss = new WebSocketServer({
     const allowedOrigins = ['http://localhost:3000', 'http://localhost:8000'];
     if (process.env.NODE_ENV === 'production') {
       allowedOrigins.push('https://tedlist.onrender.com');
+      allowedOrigins.push('https://tedlist-backend.onrender.com');
     }
     if (allowedOrigins.includes(origin)) {
       callback(true);
