@@ -158,4 +158,68 @@ export const updateItem: RequestHandler = async (req: Request, res: Response) =>
   } catch (error) {
     res.status(500).json({ message: 'Error updating item' });
   }
+};
+
+// Get available items for swiping (excluding user's own items)
+export const getAvailableItems: RequestHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    // Get items excluding the user's own items
+    const items = await Item.find({ 
+      userId: { $ne: req.user._id },  // Exclude user's own items
+      status: 'available'  // Only show available items
+    }).populate('userId', 'name');
+    
+    // Get the base URL from the request
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    
+    const formattedItems = items.map(item => {
+      // Filter out invalid image paths and normalize the valid ones
+      const validImages = (item.images || [])
+        .filter(image => typeof image === 'string' && image.length > 0)
+        .map(image => {
+          // Remove any existing base URL to prevent duplication
+          const cleanPath = image.replace(baseUrl, '').replace(/^\/+/, '');
+          // Ensure the path starts with /uploads/
+          const normalizedPath = cleanPath.startsWith('uploads/') ? `/${cleanPath}` : `/uploads/${cleanPath}`;
+          return `${baseUrl}${normalizedPath}`;
+        });
+
+      return {
+        id: item._id.toString(),
+        title: item.title,
+        description: item.description,
+        images: validImages,
+        condition: item.condition,
+        type: item.type,
+        status: item.status,
+        createdAt: item.createdAt,
+        userId: item.userId.toString()
+      };
+    });
+
+    // Filter out items with no valid images
+    const itemsWithImages = formattedItems.filter(item => item.images.length > 0);
+
+    console.log('Sending formatted items with images:', 
+      itemsWithImages.map(item => ({
+        id: item.id,
+        images: item.images
+      }))
+    );
+
+    res.json(itemsWithImages);
+  } catch (error) {
+    console.error('Error in getAvailableItems:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Error fetching available items'
+    });
+  }
 }; 

@@ -1,6 +1,6 @@
 import express from 'express';
 import auth from '../middleware/auth';
-import { isAdmin, getAllUsers, makeAdmin, removeAdmin, updateAdminPrivileges, deleteUser } from '../controllers/adminController';
+import { isAdmin, getAllUsers, makeAdmin, removeAdmin, updateAdminPrivileges, deleteUser, deleteAllUserItems } from '../controllers/adminController';
 
 const router = express.Router();
 
@@ -22,5 +22,8 @@ router.put('/users/:userId/privileges', updateAdminPrivileges);
 
 // Delete a user (soft delete)
 router.post('/users/:userId/delete', deleteUser);
+
+// Delete all items from a user
+router.delete('/users/:userId/items', deleteAllUserItems);
 
 export default router; 
