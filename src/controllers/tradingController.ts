@@ -4,24 +4,31 @@ import { User } from '../models/User';
 import { Item } from '../models/Item';
 import Deal from '../models/Deal';
 import { createNotification } from './notificationController';
+import mongoose from 'mongoose';
 
 export const startTradingSession = async (req: AuthRequest, res: Response) => {
   try {
     const { itemId } = req.body;
+    
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
     // Update user's trading session
-    await User.findByIdAndUpdate(req.user._id, {
-      'tradingSession.activeItemId': itemId,
-      'tradingSession.startedAt': new Date()
-    });
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        'tradingSession.activeItemId': itemId,
+        'tradingSession.startedAt': new Date()
+      },
+      { new: true }
+    );
 
     res.json({
       success: true,
       message: 'Trading session started',
-      itemId
+      itemId,
+      tradingSession: updatedUser?.tradingSession
     });
   } catch (error) {
     console.error('Error starting trading session:', error);
@@ -32,45 +39,30 @@ export const startTradingSession = async (req: AuthRequest, res: Response) => {
 export const getAvailableItems = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.user) {
-      console.log('No authenticated user found');
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
     const user = await User.findById(req.user._id);
-    console.log('User trading session:', user?.tradingSession);
     
     if (!user?.tradingSession?.activeItemId) {
-      console.log('No active trading session found');
       return res.json([]);
     }
 
-    // Log the query parameters
+    // Query parameters
     const queryParams = {
       userId: { $ne: user._id },
       _id: { $nin: user.swipedItems || [] },
       type: 'trade',
       status: 'available'
     };
-    console.log('Query parameters:', queryParams);
 
-    // First, let's get ALL items to see what's available
-    const allItems = await Item.find();
-    console.log('All items in database:', allItems.map(item => ({
-      _id: item._id,
-      title: item.title,
-      userId: item.userId,
-      type: item.type,
-      status: item.status
-    })));
-
-    // Get real items that:
+    // Get items that:
     // 1. Don't belong to the current user
     // 2. Haven't been swiped by the user
     // 3. Are available for trading
     const realItems = await Item.find(queryParams).populate('userId', 'name');
-    console.log('Filtered items:', realItems);
 
-    // Transform real items to match the format
+    // Transform items to match the frontend format
     const formattedItems = realItems.map(item => ({
       _id: item._id.toString(),
       title: item.title,
@@ -86,8 +78,6 @@ export const getAvailableItems = async (req: AuthRequest, res: Response) => {
       teddyBonus: item.teddyBonus || Math.floor(Math.random() * 10) + 1
     }));
 
-    console.log('Formatted items being returned:', formattedItems);
-
     res.json(formattedItems);
   } catch (error) {
     console.error('Error fetching available items:', error);
@@ -98,15 +88,13 @@ export const getAvailableItems = async (req: AuthRequest, res: Response) => {
 export const swipeItem = async (req: AuthRequest, res: Response) => {
   try {
     const { itemId, direction } = req.body;
-    console.log('Swipe request:', { itemId, direction, userId: req.user?._id });
-
+    
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
     const user = await User.findById(req.user._id);
-    console.log('User found:', { userId: user?._id, name: user?.name });
-
+    
     if (!user?.tradingSession?.activeItemId) {
       return res.status(400).json({ message: 'No active trading session' });
     }
@@ -115,28 +103,18 @@ export const swipeItem = async (req: AuthRequest, res: Response) => {
     await User.findByIdAndUpdate(user._id, {
       $addToSet: { swipedItems: itemId }
     });
-    console.log('Swipe recorded for user');
 
     if (direction === 'right') {
       // Get the item and its owner
       const likedItem = await Item.findById(itemId);
-      console.log('Liked item found:', { 
-        itemId: likedItem?._id, 
-        title: likedItem?.title,
-        ownerId: likedItem?.userId
-      });
-
+      
       if (!likedItem) {
         return res.status(404).json({ message: 'Item not found' });
       }
 
       // Get the item owner's details
       const itemOwner = await User.findById(likedItem.userId);
-      console.log('Item owner found:', {
-        ownerId: itemOwner?._id,
-        ownerName: itemOwner?.name
-      });
-
+      
       if (!itemOwner) {
         console.error('Item owner not found');
         return res.status(404).json({ message: 'Item owner not found' });
@@ -151,7 +129,6 @@ export const swipeItem = async (req: AuthRequest, res: Response) => {
           user._id.toString(),
           `${user.name} is interested in your item "${likedItem.title}"`
         );
-        console.log('Notification created:', notification);
       } catch (notifError) {
         console.error('Error creating notification:', notifError);
         // Don't return here, continue with the swipe process
@@ -162,11 +139,7 @@ export const swipeItem = async (req: AuthRequest, res: Response) => {
         'tradingSession.activeItemId': itemId,
         swipedItems: user.tradingSession.activeItemId
       });
-      console.log('Checking for match:', { 
-        otherUserId: otherUser?._id,
-        otherUserName: otherUser?.name
-      });
-
+      
       if (otherUser) {
         try {
           // It's a match! Create match notifications for both users
@@ -186,7 +159,6 @@ export const swipeItem = async (req: AuthRequest, res: Response) => {
               `You have a match with ${otherUser.name}`
             )
           ]);
-          console.log('Match notifications created:', { notification1, notification2 });
         } catch (matchNotifError) {
           console.error('Error creating match notifications:', matchNotifError);
         }
@@ -215,7 +187,6 @@ export const swipeItem = async (req: AuthRequest, res: Response) => {
 export const acceptTrade = async (req: AuthRequest, res: Response) => {
   try {
     const { itemId, fromUserId } = req.body;
-    console.log('Accept trade request:', { itemId, fromUserId, currentUser: req.user?._id });
     
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -224,12 +195,7 @@ export const acceptTrade = async (req: AuthRequest, res: Response) => {
     // Get the items involved in the trade
     const receiverItem = await Item.findById(itemId);
     const sender = await User.findById(fromUserId);
-    console.log('Found items and users:', { 
-      receiverItem: receiverItem?._id, 
-      sender: sender?._id,
-      senderActiveItem: sender?.tradingSession?.activeItemId 
-    });
-
+    
     if (!receiverItem || !sender || !sender.tradingSession?.activeItemId) {
       return res.status(404).json({ message: 'Items not found' });
     }
@@ -237,13 +203,6 @@ export const acceptTrade = async (req: AuthRequest, res: Response) => {
     if (!senderItem) {
       return res.status(404).json({ message: 'Sender item not found' });
     }
-
-    console.log('Creating deal with:', {
-      sender: fromUserId,
-      receiver: req.user._id,
-      senderItems: [senderItem._id],
-      receiverItems: [receiverItem._id]
-    });
 
     // Create a new deal
     const deal = new Deal({
@@ -255,8 +214,7 @@ export const acceptTrade = async (req: AuthRequest, res: Response) => {
       teddiesEarned: Math.floor(Math.random() * 10) + 5 // Random bonus between 5-15
     });
     const savedDeal = await deal.save();
-    console.log('Created deal:', savedDeal);
-
+    
     // Update both items' status
     await Item.findByIdAndUpdate(itemId, { status: 'traded' });
     await Item.findByIdAndUpdate(senderItem._id, { status: 'traded' });
@@ -286,8 +244,6 @@ export const resetSwipes = async (req: AuthRequest, res: Response) => {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
-
-    console.log('Resetting swipes for user:', req.user._id);
 
     // Reset swipedItems array for the user
     await User.findByIdAndUpdate(req.user._id, {

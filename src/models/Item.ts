@@ -75,9 +75,7 @@ const itemSchema = new Schema<IItem>({
     max: 10
   }
 }, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  timestamps: true
 });
 
 // Add a virtual for user information

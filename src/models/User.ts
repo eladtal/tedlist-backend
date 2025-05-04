@@ -57,43 +57,35 @@ const userSchema = new Schema<IUser, UserModel, UserMethods>(
       type: Number,
       default: 0,
     },
-    quests: {
-      type: [
-        {
-          id: String,
-          progress: Number,
-          completed: Boolean,
-          completedAt: {
-            type: Date,
-            required: false
-          },
-        },
-      ],
-      default: [],
-    },
+    quests: [{
+      id: String,
+      progress: Number,
+      completed: Boolean,
+      completedAt: Date,
+    }],
     tradingSession: {
       activeItemId: {
         type: Schema.Types.ObjectId,
         ref: 'Item',
+        default: null,
       },
       startedAt: {
         type: Date,
+        default: null,
       },
     },
-    swipedItems: {
-      type: [String],
-      default: [],
-    },
-    teddyTransactions: {
-      type: [
-        {
-          amount: Number,
-          description: String,
-          timestamp: Date,
-        },
-      ],
-      default: [],
-    },
+    swipedItems: [{
+      type: Schema.Types.ObjectId,
+      ref: 'Item',
+    }],
+    teddyTransactions: [{
+      amount: Number,
+      description: String,
+      timestamp: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
     isDeleted: {
       type: Boolean,
       default: false,
