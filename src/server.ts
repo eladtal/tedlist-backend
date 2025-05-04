@@ -105,7 +105,7 @@ app.use('/api/admin', adminRouter);
 // Serve static files from the React app
 if (process.env.NODE_ENV === 'production') {
   // Serve any static files
-  app.use(express.static(path.join(__dirname, '../../frontend/build')));
+  app.use(express.static(path.join(__dirname, '../frontend/build')));
 
   // Handle React routing, return all requests to React app
   app.get('*', (req, res) => {
@@ -113,7 +113,7 @@ if (process.env.NODE_ENV === 'production') {
     if (req.url.startsWith('/api') || req.url.startsWith('/ws') || req.url.startsWith('/uploads')) {
       return res.status(404).json({ message: 'Not found' });
     }
-    res.sendFile(path.join(__dirname, '../../frontend/build', 'index.html'));
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
   });
 }
 
