@@ -223,3 +223,47 @@ export const getAvailableItems: RequestHandler = async (req: AuthRequest, res: R
     });
   }
 }; 
+
+// Upload image standalone endpoint
+export const uploadImage: RequestHandler = async (req: AuthRequest & { file?: Express.Multer.File }, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'User not authenticated' 
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'No image file provided' 
+      });
+    }
+
+    // Get the base URL from the request
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    
+    // Get the relative path for the uploaded file
+    const relativePath = getRelativePath(req.file.filename);
+    
+    // Return the full URL to the uploaded image
+    const imageUrl = `${baseUrl}${relativePath}`;
+    
+    res.status(200).json({
+      success: true,
+      message: 'Image uploaded successfully',
+      data: {
+        imageUrl,
+        relativePath
+      }
+    });
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error uploading image',
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+};
