@@ -103,13 +103,13 @@ app.use('/api/trading', tradingRouter);
 app.use('/api/admin', adminRouter);
 
 // API-only server configuration - no static file serving needed for React Native
-app.get('*', (req, res) => {
-  // Only handle API and uploads routes, return 404 for everything else
+// This replaces the old frontend/build static file serving code that was causing ENOENT errors
+app.get('*', (req, res, next) => {
+  // Only process API and uploads routes, return 404 for everything else
   if (!req.url.startsWith('/api') && !req.url.startsWith('/ws') && !req.url.startsWith('/uploads')) {
     return res.status(404).json({ message: 'Not found - This is an API-only server for mobile app' });
   }
-  // Let the request continue to the API routes
-  res.status(404).json({ message: 'API endpoint not found' });
+  next();
 });
 
 // WebSocket setup
@@ -304,4 +304,4 @@ server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
 
-export default app; 
+export default app;

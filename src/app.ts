@@ -9,6 +9,7 @@ import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
 import adminRouter from './routes/admin';
 import { config } from './config';
+import { getPublicUrl } from './utils/s3Storage';
 
 const app = express();
 
@@ -17,8 +18,25 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Handle image requests - redirect to S3 if file not found locally
+app.use('/uploads', (req, res, next) => {
+  // Try to serve from local directory first (for backward compatibility)
+  const staticHandler = express.static(path.join(__dirname, '../uploads'));
+  
+  staticHandler(req, res, (err) => {
+    if (err) {
+      // If file not found locally, redirect to S3
+      // Extract the file path from the URL
+      const filePath = req.path;
+      console.log(`File not found locally: ${filePath}, redirecting to S3`);
+      
+      // Redirect to S3
+      const s3Url = getPublicUrl(`uploads${filePath}`);
+      return res.redirect(s3Url);
+    }
+    next();
+  });
+});
 
 // Routes
 app.use('/api/auth', authRouter);
