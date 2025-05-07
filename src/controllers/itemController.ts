@@ -6,6 +6,7 @@ import { RequestHandler } from 'express-serve-static-core';
 import multer from 'multer';
 import { IUser } from '../types/user';
 import { getRelativePath } from '../utils/storage';
+import { uploadFileToS3 } from '../utils/s3Storage';
 
 interface ItemParams extends ParamsDictionary {
   id: string;
@@ -224,7 +225,7 @@ export const getAvailableItems: RequestHandler = async (req: AuthRequest, res: R
   }
 }; 
 
-// Upload image standalone endpoint
+// Upload image standalone endpoint - now with S3 support
 export const uploadImage: RequestHandler = async (req: AuthRequest & { file?: Express.Multer.File }, res: Response) => {
   try {
     if (!req.user?._id) {
@@ -241,28 +242,22 @@ export const uploadImage: RequestHandler = async (req: AuthRequest & { file?: Ex
       });
     }
 
-    // Get the base URL from the request
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    // Upload file to S3 instead of local storage
+    const imageUrl = await uploadFileToS3(req.file);
     
-    // Get the relative path for the uploaded file
-    const relativePath = getRelativePath(req.file.filename);
-    
-    // Return the full URL to the uploaded image
-    const imageUrl = `${baseUrl}${relativePath}`;
-    
+    // Return the S3 URL to the uploaded image
     res.status(200).json({
       success: true,
-      message: 'Image uploaded successfully',
+      message: 'Image uploaded successfully to S3',
       data: {
-        imageUrl,
-        relativePath
+        imageUrl
       }
     });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error uploading image to S3:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Error uploading image',
+      message: 'Error uploading image to S3',
       error: error instanceof Error ? error.message : 'Unknown error' 
     });
   }
