@@ -1,23 +1,28 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
+import { GoogleAuth } from 'google-auth-library';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Check for the API key in environment variables
-const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-if (!apiKey) {
-  console.error('Google Cloud Vision API key not found in environment variables');
+if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+  console.warn('Warning: GOOGLE_CLOUD_VISION_API_KEY not set');
 }
 
 // Create a client with API key authentication
-const visionClient = new ImageAnnotatorClient({
-  apiEndpoint: 'vision.googleapis.com',
-  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS, // Path to service account key file
-  projectId: process.env.GOOGLE_CLOUD_PROJECT_ID, // Optional project ID
+const auth = new GoogleAuth({
+  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  keyFile: undefined,
+  credentials: undefined,
+  projectId: undefined
 });
 
-// Alternative way to initialize with an API key directly if using an API key instead of service account
-// Note: For Vision API, a service account is more common
+const visionClient = new ImageAnnotatorClient({
+  apiEndpoint: 'vision.googleapis.com',
+  auth
+});
+
+console.log('Vision API client initialized with API key:', !!process.env.GOOGLE_CLOUD_VISION_API_KEY);
 
 /**
  * Analyze an image using Google Cloud Vision API
@@ -39,12 +44,17 @@ export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> =
         { type: 'TEXT_DETECTION' }
       ],
     });
-    
-    console.log('Image analysis completed successfully');
+
+    if (!result || !result.labelAnnotations) {
+      throw new Error('No analysis results received from Vision API');
+    }
+
     return result;
-  } catch (error) {
-    console.error('Error analyzing image with Vision API:', error);
-    throw error;
+  } catch (error: any) {
+    console.error('Error analyzing image:', error);
+    throw new Error(
+      `Vision API error: ${error.message || 'Unknown error occurred'}`
+    );
   }
 };
 
