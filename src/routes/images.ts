@@ -37,8 +37,9 @@ router.get('/:filename', async (req, res) => {
   try {
     console.log(`[ImageProxy] Fetching image from S3: ${filename}`);
     
-    // Construct the S3 key (path) - assuming images are in the uploads folder
+    // Construct the S3 key (path) - all images are in the uploads folder
     const key = `uploads/${filename}`;
+    console.log(`[ImageProxy] Requesting S3 object with key: ${key} from bucket: ${bucketName}`);
     
     // Create the GetObject command
     const command = new GetObjectCommand({
@@ -67,9 +68,20 @@ router.get('/:filename', async (req, res) => {
       // Handle non-streamable response
       res.status(500).send('Error streaming image data');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[ImageProxy] Error fetching image:', error);
-    res.status(404).send('Image not found');
+    // More detailed error reporting
+    if (error.name === 'NoSuchKey') {
+      console.error(`[ImageProxy] The key ${filename} does not exist in the S3 bucket`);
+      return res.status(404).send(`Image not found: ${filename}`);
+    }
+    
+    if (error.name === 'AccessDenied') {
+      console.error(`[ImageProxy] Access denied to the S3 object: ${filename}`);
+      return res.status(403).send('Access denied to image');
+    }
+    
+    res.status(500).send(`Server error: ${error.message || 'Unknown error'}`);
   }
 });
 
