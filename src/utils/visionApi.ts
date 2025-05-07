@@ -83,7 +83,7 @@ export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> =
         throw new Error(`Vision API request failed: ${response.status} ${response.statusText}`);
       }
       
-      const data = await response.json();
+      const data = await response.json() as { responses: any[] };
       console.log('Direct Vision API call succeeded');
       return data.responses[0];
     }
