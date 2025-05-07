@@ -1,6 +1,7 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { GoogleAuth } from 'google-auth-library';
 import dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -34,10 +35,59 @@ try {
  */
 export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> => {
   try {
-    if (!visionApiInitialized || !visionClient) {
-      throw new Error('Vision API client not initialized. Check API key configuration.');
+    if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+      throw new Error('Vision API key not configured');
     }
 
+    // This is a backup approach in case the Vision client initialization fails
+    // We'll directly call the API using fetch with the key parameter
+    if (!visionApiInitialized || !visionClient) {
+      console.warn('Vision API client not initialized. Attempting direct API call instead.');
+      
+      // Make a direct API call to Vision API using fetch
+      const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+      const visionApiUrl = 'https://vision.googleapis.com/v1/images:annotate';
+      
+      const requestBody = {
+        requests: [{
+          image: {
+            content: typeof imageBuffer === 'string' ? imageBuffer : imageBuffer.toString('base64')
+          },
+          features: [
+            { type: 'LABEL_DETECTION', maxResults: 10 },
+            { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
+            { type: 'IMAGE_PROPERTIES' },
+            { type: 'WEB_DETECTION' },
+            { type: 'TEXT_DETECTION' }
+          ]
+        }]
+      };
+      
+      console.log('Making direct API call to Vision API');
+      
+      // Use node-fetch or another HTTP client in Node.js environment
+      // For simplicity, we're just showing the URL construction here
+      const fullUrl = `${visionApiUrl}?key=${apiKey}`;
+      console.log(`Calling Vision API at: ${visionApiUrl} (with API key)`); 
+      
+      // Make the actual API call
+      const response = await fetch(fullUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Vision API direct call failed:', errorText);
+        throw new Error(`Vision API request failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Direct Vision API call succeeded');
+      return data.responses[0];
+    }
+    
     console.log('Starting image analysis with Google Cloud Vision API');
     
     const [result] = await visionClient.annotateImage({
@@ -67,20 +117,19 @@ export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> =
 
 /**
  * Generate an item description based on Vision API results
- * @param analysisResults - Results from the Vision API
+ * @param analysisResult - Results from the Vision API
  * @returns Object with generated item properties
  */
-export const generateItemDescription = (analysisResults: any): {
-  title: string;
-  description: string;
-  category: string;
-  condition: string;
-} => {
+export const generateItemDescription = (analysisResult: any): any => {
   try {
-    const labels = analysisResults.labelAnnotations || [];
-    const objects = analysisResults.localizedObjectAnnotations || [];
-    const imageProperties = analysisResults.imagePropertiesAnnotation;
-    const textAnnotations = analysisResults.textAnnotations || [];
+    // Handle both direct API response and client library response formats
+    // Direct API calls return a different structure than the client library
+    
+    // Extract labels
+    const labels = analysisResult.labelAnnotations || analysisResult.labelDetections || [];
+    const objects = analysisResult.localizedObjectAnnotations || [];
+    const webEntities = analysisResult.webDetection?.webEntities || [];
+    const textAnnotations = analysisResult.textAnnotations || [];
     
     // Extract the primary object or label for title
     const mainObject = objects && objects.length > 0 ? objects[0] : null;
