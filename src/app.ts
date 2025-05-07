@@ -39,6 +39,15 @@ app.use('/uploads', (req, res, next) => {
   });
 });
 
+// Add a simple test endpoint directly in app.ts
+app.get('/api/test-endpoint', (req, res) => {
+  res.json({ 
+    message: 'Test endpoint is working!',
+    timestamp: new Date().toISOString(),
+    hasVisionApiKey: !!process.env.GOOGLE_CLOUD_VISION_API_KEY
+  });
+});
+
 // Routes
 app.use('/api/auth', authRouter);
 app.use('/api/items', itemsRouter);
