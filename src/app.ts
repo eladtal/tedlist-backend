@@ -8,6 +8,7 @@ import tradingRouter from './routes/trading';
 import notificationsRouter from './routes/notifications';
 import dealsRouter from './routes/deals';
 import adminRouter from './routes/admin';
+import visionRouter from './routes/vision';
 import { config } from './config';
 import { getPublicUrl } from './utils/s3Storage';
 
@@ -45,6 +46,7 @@ app.use('/api/trading', tradingRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/deals', dealsRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/vision', visionRouter);
 
 // Connect to MongoDB
 mongoose.connect(config.mongoUri)
