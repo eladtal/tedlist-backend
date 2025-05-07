@@ -1,7 +1,9 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { GoogleAuth } from 'google-auth-library';
 import dotenv from 'dotenv';
-import fetch from 'node-fetch';
+// Import node-fetch with a more compatible approach for TypeScript
+// @ts-ignore
+const fetch = require('node-fetch');
 
 dotenv.config();
 
