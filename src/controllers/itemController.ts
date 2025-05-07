@@ -66,11 +66,29 @@ export const createItem: RequestHandler = async (req: CreateItemRequest, res: Re
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const files = Array.isArray(req.files) ? req.files : req.files?.images || [];
+    // Check if images were provided in the request body
+    console.log('Create item request body:', req.body);
+    
+    // Try to use images from the request body first, fall back to uploaded files if needed
+    let imageArray = [];
+    
+    // If images exist in request body and it's an array, use those
+    if (req.body.images && Array.isArray(req.body.images) && req.body.images.length > 0) {
+      console.log('Using images from request body:', req.body.images);
+      imageArray = req.body.images;
+    } else {
+      // Fall back to files if no images in the body
+      const files = Array.isArray(req.files) ? req.files : req.files?.images || [];
+      console.log('No images in body, using uploaded files:', files.length);
+      imageArray = files.map(file => getRelativePath(file.filename));
+    }
+    
+    console.log('Final image array for MongoDB:', imageArray);
+    
     const itemData = {
       ...req.body,
       userId: req.user._id,
-      images: files.map(file => getRelativePath(file.filename))
+      images: imageArray
     };
 
     const item = new Item(itemData);
