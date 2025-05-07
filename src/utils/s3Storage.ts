@@ -36,8 +36,8 @@ export const uploadFileToS3 = async (file: Express.Multer.File): Promise<string>
       Bucket: bucketName,
       Key: `uploads/${fileName}`,
       Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: 'public-read' as const // Fix type issue with ACL
+      ContentType: file.mimetype
+      // ACL removed - bucket doesn't allow ACLs
     };
     
     // Upload to S3
@@ -63,8 +63,8 @@ export const getPresignedUploadUrl = async (fileName: string): Promise<string> =
   const command = new PutObjectCommand({
     Bucket: bucketName,
     Key: uniqueFileName,
-    ContentType: 'application/octet-stream',
-    ACL: 'public-read' as const // Fix type issue with ACL
+    ContentType: 'application/octet-stream'
+    // ACL removed - bucket doesn't allow ACLs
   });
   
   try {
