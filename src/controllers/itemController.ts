@@ -102,40 +102,68 @@ export const createItem: RequestHandler = async (req: CreateItemRequest, res: Re
 
 // Delete item and its associated S3 images
 export const deleteItem: RequestHandler = async (req: Request, res: Response) => {
+  console.log(`=== DELETE ITEM REQUEST for ID: ${req.params.id} ===`);
   try {
     // First find the item to get its images
     const item = await Item.findById(req.params.id);
     if (!item) {
+      console.log(`Item not found with ID: ${req.params.id}`);
       return res.status(404).json({ message: 'Item not found' });
     }
+
+    console.log(`Found item: ${item._id}, title: ${item.title}`);
+    console.log(`Item has ${item.images?.length || 0} images`);
+    console.log(`Raw image data:`, JSON.stringify(item.images));
 
     // Delete the item's images from S3
     if (item.images && Array.isArray(item.images) && item.images.length > 0) {
       console.log(`Deleting ${item.images.length} images for item ${req.params.id}`);
       
+      // Track results of each deletion
+      const deletionResults = [];
+      
       // Process each image URL and delete from S3
-      const deletePromises = item.images.map(async (imageUrl) => {
-        if (typeof imageUrl === 'string') {
+      for (const imageUrl of item.images) {
+        if (typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
           try {
+            console.log(`Processing image URL: ${imageUrl}`);
+            
+            // Check if this is a valid URL or path
+            if (imageUrl.includes('undefined') || imageUrl === 'null') {
+              console.log(`Skipping invalid image URL: ${imageUrl}`);
+              deletionResults.push({ url: imageUrl, success: false, reason: 'Invalid URL' });
+              continue;
+            }
+            
+            // Try to delete from S3
             const result = await deleteObjectFromS3(imageUrl);
             console.log(`Image deletion result for ${imageUrl}: ${result ? 'Success' : 'Failed'}`);
-            return result;
+            deletionResults.push({ url: imageUrl, success: result });
           } catch (err) {
             console.error(`Error deleting image ${imageUrl}:`, err);
-            return false;
+            deletionResults.push({ 
+              url: imageUrl, 
+              success: false, 
+              error: err instanceof Error ? err.message : 'Unknown error'
+            });
           }
+        } else {
+          console.log(`Skipping non-string image value: ${imageUrl}`);
         }
-        return false;
-      });
+      }
       
-      // Wait for all image deletions to complete
-      await Promise.all(deletePromises);
+      // Log summary of deletion operations
+      const successCount = deletionResults.filter(r => r.success).length;
+      console.log(`S3 deletion summary: ${successCount}/${item.images.length} successful`);
+      console.log('Detailed results:', JSON.stringify(deletionResults));
+      
     } else {
       console.log(`No images to delete for item ${req.params.id}`);
     }
 
     // Now delete the item from the database
     await Item.findByIdAndDelete(req.params.id);
+    console.log(`Item with ID ${req.params.id} deleted from database`);
     
     res.json({ 
       message: 'Item and associated images deleted successfully',

@@ -129,28 +129,70 @@ export const getPublicUrl = (key: string): string => {
  * @returns S3 key
  */
 export const extractKeyFromUrl = (url: string): string | null => {
-  if (!url) return null;
+  if (!url) {
+    console.log('extractKeyFromUrl: URL is empty');
+    return null;
+  }
   
-  // Check if it's an S3 URL
+  console.log('extractKeyFromUrl: Processing URL:', url);
+  
+  // Check if it's an S3 URL (handle both https:// and http:// formats)
   if (url.includes('s3.amazonaws.com')) {
-    // Get everything after the bucket name in the URL
-    const bucketPattern = new RegExp(`https://${bucketName}.s3.amazonaws.com/(.+)`);
-    const match = url.match(bucketPattern);
-    if (match && match[1]) {
-      return match[1];
+    console.log('extractKeyFromUrl: Detected S3 URL format');
+    
+    // Different patterns for S3 URLs
+    const patterns = [
+      // Standard format: https://bucket-name.s3.amazonaws.com/key
+      new RegExp(`https?://${bucketName}.s3.amazonaws.com/(.+)`),
+      // Alternative format: https://s3.amazonaws.com/bucket-name/key
+      new RegExp(`https?://s3.amazonaws.com/${bucketName}/(.+)`),
+      // Generic pattern as fallback
+      new RegExp('https?://[^/]+/(.+)')
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        console.log(`extractKeyFromUrl: Matched S3 key: ${match[1]}`);
+        return match[1];
+      }
+    }
+    
+    // If no patterns match but it's definitely an S3 URL
+    // Try to extract key from the end of the URL
+    const urlParts = url.split('/');
+    // Get all parts after the domain
+    const possibleKey = urlParts.slice(3).join('/');
+    if (possibleKey) {
+      console.log(`extractKeyFromUrl: Extracted possible key from URL parts: ${possibleKey}`);
+      return possibleKey;
     }
   }
   
   // If it's just a relative path (e.g., 'uploads/filename.jpg')
   if (url.startsWith('uploads/')) {
+    console.log(`extractKeyFromUrl: Using relative path as key: ${url}`);
     return url;
+  }
+  
+  // If it contains our API image proxy path
+  if (url.includes('/api/images/')) {
+    const filename = url.split('/').pop();
+    if (filename) {
+      const key = `uploads/${filename}`;
+      console.log(`extractKeyFromUrl: Extracted key from API proxy path: ${key}`);
+      return key;
+    }
   }
   
   // If it's just a filename, add the uploads/ prefix
   if (!url.includes('/')) {
-    return `uploads/${url}`;
+    const key = `uploads/${url}`;
+    console.log(`extractKeyFromUrl: Added uploads/ prefix to filename: ${key}`);
+    return key;
   }
   
+  console.log('extractKeyFromUrl: Could not extract key from URL:', url);
   return null;
 };
 
@@ -161,26 +203,72 @@ export const extractKeyFromUrl = (url: string): string | null => {
  */
 export const deleteObjectFromS3 = async (key: string): Promise<boolean> => {
   try {
-    // If we were passed a full URL, extract just the key
-    const s3Key = key.includes('s3.amazonaws.com') ? extractKeyFromUrl(key) : key;
+    console.log('deleteObjectFromS3: Starting deletion process for:', key);
     
-    if (!s3Key) {
-      console.error('Could not extract valid S3 key from:', key);
+    // Check S3 configuration
+    if (!accessKeyId || !secretAccessKey || !bucketName) {
+      console.error('deleteObjectFromS3: Missing S3 configuration. Please check environment variables.');
+      console.log('Region:', region);
+      console.log('Bucket name:', bucketName);
+      console.log('Access key present:', !!accessKeyId);
+      console.log('Secret key present:', !!secretAccessKey);
       return false;
     }
     
-    console.log(`Deleting from S3: bucket=${bucketName}, key=${s3Key}`);
+    // Extract the S3 key if given a URL
+    let s3Key: string | null;
+    
+    if (key.includes('s3.amazonaws.com') || key.includes('/api/images/') || key.includes('://')) {
+      console.log('deleteObjectFromS3: Parsing URL to extract S3 key');
+      s3Key = extractKeyFromUrl(key);
+    } else if (key.startsWith('uploads/')) {
+      console.log('deleteObjectFromS3: Using key directly as it starts with uploads/');
+      s3Key = key;
+    } else if (!key.includes('/')) {
+      console.log('deleteObjectFromS3: Adding uploads/ prefix to filename');
+      s3Key = `uploads/${key}`;
+    } else {
+      console.log('deleteObjectFromS3: Using key as-is');
+      s3Key = key;
+    }
+    
+    if (!s3Key) {
+      console.error('deleteObjectFromS3: Could not extract valid S3 key from:', key);
+      return false;
+    }
+    
+    console.log(`deleteObjectFromS3: Attempting to delete from S3: bucket=${bucketName}, key=${s3Key}`);
+    
+    // Ensure no leading slash in the key
+    const cleanKey = s3Key.startsWith('/') ? s3Key.substring(1) : s3Key;
     
     const params = {
       Bucket: bucketName,
-      Key: s3Key
+      Key: cleanKey
     };
     
-    await s3Client.send(new DeleteObjectCommand(params));
-    console.log('S3 object deleted successfully:', s3Key);
-    return true;
+    console.log('deleteObjectFromS3: Delete parameters:', JSON.stringify(params));
+    
+    try {
+      const result = await s3Client.send(new DeleteObjectCommand(params));
+      console.log('deleteObjectFromS3: S3 deletion response:', result);
+      console.log('deleteObjectFromS3: S3 object deleted successfully:', cleanKey);
+      return true;
+    } catch (s3Error: any) {
+      console.error('deleteObjectFromS3: S3 client error details:', s3Error);
+      console.error('deleteObjectFromS3: Error message:', s3Error.message);
+      
+      // Check for common errors
+      if (s3Error.name === 'NoSuchKey') {
+        console.log('deleteObjectFromS3: The specified key does not exist in the bucket');
+      } else if (s3Error.name === 'AccessDenied') {
+        console.log('deleteObjectFromS3: Access denied - check IAM permissions');
+      }
+      
+      return false;
+    }
   } catch (error) {
-    console.error('Error deleting object from S3:', error);
+    console.error('deleteObjectFromS3: Unexpected error:', error);
     return false;
   }
 };
