@@ -6,7 +6,7 @@ import { RequestHandler } from 'express-serve-static-core';
 import multer from 'multer';
 import { IUser } from '../types/user';
 import { getRelativePath } from '../utils/storage';
-import { uploadFileToS3 } from '../utils/s3Storage';
+import { uploadFileToS3, deleteObjectFromS3 } from '../utils/s3Storage';
 
 interface ItemParams extends ParamsDictionary {
   id: string;
@@ -100,16 +100,53 @@ export const createItem: RequestHandler = async (req: CreateItemRequest, res: Re
   }
 };
 
-// Delete item
+// Delete item and its associated S3 images
 export const deleteItem: RequestHandler = async (req: Request, res: Response) => {
   try {
-    const item = await Item.findByIdAndDelete(req.params.id);
+    // First find the item to get its images
+    const item = await Item.findById(req.params.id);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
-    res.json({ message: 'Item deleted successfully' });
+
+    // Delete the item's images from S3
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      console.log(`Deleting ${item.images.length} images for item ${req.params.id}`);
+      
+      // Process each image URL and delete from S3
+      const deletePromises = item.images.map(async (imageUrl) => {
+        if (typeof imageUrl === 'string') {
+          try {
+            const result = await deleteObjectFromS3(imageUrl);
+            console.log(`Image deletion result for ${imageUrl}: ${result ? 'Success' : 'Failed'}`);
+            return result;
+          } catch (err) {
+            console.error(`Error deleting image ${imageUrl}:`, err);
+            return false;
+          }
+        }
+        return false;
+      });
+      
+      // Wait for all image deletions to complete
+      await Promise.all(deletePromises);
+    } else {
+      console.log(`No images to delete for item ${req.params.id}`);
+    }
+
+    // Now delete the item from the database
+    await Item.findByIdAndDelete(req.params.id);
+    
+    res.json({ 
+      message: 'Item and associated images deleted successfully',
+      itemId: req.params.id
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting item' });
+    console.error('Error in deleteItem:', error);
+    res.status(500).json({ 
+      message: 'Error deleting item', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
   }
 };
 

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import path from 'path';
 import dotenv from 'dotenv';
@@ -121,4 +121,66 @@ export const getPresignedUploadUrl = async (fileName: string): Promise<string> =
  */
 export const getPublicUrl = (key: string): string => {
   return `https://${bucketName}.s3.amazonaws.com/${key}`;
+};
+
+/**
+ * Extract the key from a full S3 URL
+ * @param url Full S3 URL
+ * @returns S3 key
+ */
+export const extractKeyFromUrl = (url: string): string | null => {
+  if (!url) return null;
+  
+  // Check if it's an S3 URL
+  if (url.includes('s3.amazonaws.com')) {
+    // Get everything after the bucket name in the URL
+    const bucketPattern = new RegExp(`https://${bucketName}.s3.amazonaws.com/(.+)`);
+    const match = url.match(bucketPattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  // If it's just a relative path (e.g., 'uploads/filename.jpg')
+  if (url.startsWith('uploads/')) {
+    return url;
+  }
+  
+  // If it's just a filename, add the uploads/ prefix
+  if (!url.includes('/')) {
+    return `uploads/${url}`;
+  }
+  
+  return null;
+};
+
+/**
+ * Delete an object from S3
+ * @param key The key of the S3 object to delete, or the full S3 URL
+ * @returns true if deletion was successful
+ */
+export const deleteObjectFromS3 = async (key: string): Promise<boolean> => {
+  try {
+    // If we were passed a full URL, extract just the key
+    const s3Key = key.includes('s3.amazonaws.com') ? extractKeyFromUrl(key) : key;
+    
+    if (!s3Key) {
+      console.error('Could not extract valid S3 key from:', key);
+      return false;
+    }
+    
+    console.log(`Deleting from S3: bucket=${bucketName}, key=${s3Key}`);
+    
+    const params = {
+      Bucket: bucketName,
+      Key: s3Key
+    };
+    
+    await s3Client.send(new DeleteObjectCommand(params));
+    console.log('S3 object deleted successfully:', s3Key);
+    return true;
+  } catch (error) {
+    console.error('Error deleting object from S3:', error);
+    return false;
+  }
 };
