@@ -1,7 +1,9 @@
 import express from 'express';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Readable } from 'stream';
 import dotenv from 'dotenv';
+import authenticateToken from '../middleware/auth';
 
 dotenv.config();
 
@@ -26,7 +28,7 @@ const s3Client = new S3Client({
  * Image proxy endpoint - fetches images from S3 and serves them
  * GET /api/images/:filename
  */
-router.get('/:filename', async (req, res) => {
+router.get('/:filename', authenticateToken, async (req, res) => {
   const filename = req.params.filename;
   
   // Basic validation
@@ -34,11 +36,16 @@ router.get('/:filename', async (req, res) => {
     return res.status(400).send('Filename is required');
   }
   
+  // Remove any prefix before the timestamp (e.g., 'images-', 'thumbnails-', etc.)
+  let cleanFilename = filename.replace(/^images-/, '');
+  cleanFilename = cleanFilename.replace(/^[^0-9]+-/, '');
+  console.log(`[ImageProxy] Original filename: ${filename}, Cleaned filename: ${cleanFilename}`);
+  
   try {
-    console.log(`[ImageProxy] Fetching image from S3: ${filename}`);
+    console.log(`[ImageProxy] Fetching image from S3: ${cleanFilename}`);
     
     // Construct the S3 key (path) - all images are in the uploads folder
-    const key = `uploads/${filename}`;
+    const key = `uploads/${cleanFilename}`;
     console.log(`[ImageProxy] Requesting S3 object with key: ${key} from bucket: ${bucketName}`);
     
     // Create the GetObject command
@@ -82,6 +89,48 @@ router.get('/:filename', async (req, res) => {
     }
     
     res.status(500).send(`Server error: ${error.message || 'Unknown error'}`);
+  }
+});
+
+/**
+ * Generate a long-lived signed URL for an image
+ * GET /api/images/signed/:filename
+ */
+router.get('/signed/:filename', async (req, res) => {
+  const filename = req.params.filename;
+  
+  // Basic validation
+  if (!filename) {
+    return res.status(400).json({ error: 'Filename is required' });
+  }
+  
+  try {
+    console.log(`[ImageSigner] Generating signed URL for: ${filename}`);
+    
+    // Construct the S3 key (path) - all images are in the uploads folder
+    const key = `uploads/${filename}`;
+    
+    // Create the GetObject command
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key
+    });
+    
+    // Generate a signed URL with a 5-year expiration (maximum allowed)
+    const signedUrl = await getSignedUrl(s3Client, command, { 
+      expiresIn: 60 * 60 * 24 * 365 * 5 // 5 years
+    });
+    
+    console.log(`[ImageSigner] Generated signed URL successfully`);
+    
+    // Return the signed URL
+    return res.json({ url: signedUrl });
+  } catch (error: any) {
+    console.error('[ImageSigner] Error generating signed URL:', error);
+    return res.status(500).json({ 
+      error: 'Failed to generate signed URL', 
+      details: error.message || 'Unknown error' 
+    });
   }
 });
 
