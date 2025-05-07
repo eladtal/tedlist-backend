@@ -4,25 +4,27 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Check for the API key in environment variables
-if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
-  console.warn('Warning: GOOGLE_CLOUD_VISION_API_KEY not set');
+// Initialize Vision API client
+let visionClient: ImageAnnotatorClient;
+
+try {
+  if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+    throw new Error('GOOGLE_CLOUD_VISION_API_KEY environment variable is not set');
+  }
+
+  // Create a client with API key authentication
+  visionClient = new ImageAnnotatorClient({
+    apiEndpoint: 'vision.googleapis.com',
+    credentials: undefined,
+    keyFilename: undefined,
+    projectId: undefined
+  });
+
+  console.log('Vision API client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Vision API client:', error);
+  throw error; // Re-throw to prevent the app from starting with invalid configuration
 }
-
-// Create a client with API key authentication
-const auth = new GoogleAuth({
-  scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-  keyFile: undefined,
-  credentials: undefined,
-  projectId: undefined
-});
-
-const visionClient = new ImageAnnotatorClient({
-  apiEndpoint: 'vision.googleapis.com',
-  auth
-});
-
-console.log('Vision API client initialized with API key:', !!process.env.GOOGLE_CLOUD_VISION_API_KEY);
 
 /**
  * Analyze an image using Google Cloud Vision API
