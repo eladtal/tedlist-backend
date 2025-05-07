@@ -17,7 +17,11 @@ const uploadToMemory = multer({
 
 // Simple test route to verify the router is working
 router.get('/test', (req, res) => {
-  res.json({ message: 'Vision API routes are working!', timestamp: new Date().toISOString() });
+  res.json({ 
+    message: 'Vision API routes are working!', 
+    timestamp: new Date().toISOString(),
+    apiKeyConfigured: !!process.env.GOOGLE_CLOUD_VISION_API_KEY
+  });
 });
 
 // Test route that logs request details for debugging

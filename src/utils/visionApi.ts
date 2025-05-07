@@ -5,25 +5,26 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Initialize Vision API client
-let visionClient: ImageAnnotatorClient;
+let visionClient: ImageAnnotatorClient | null = null;
+let visionApiInitialized = false;
 
 try {
   if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
-    throw new Error('GOOGLE_CLOUD_VISION_API_KEY environment variable is not set');
+    console.warn('Warning: GOOGLE_CLOUD_VISION_API_KEY environment variable is not set');
+  } else {
+    // Create a client with API key authentication
+    visionClient = new ImageAnnotatorClient({
+      apiEndpoint: 'vision.googleapis.com',
+      credentials: undefined,
+      keyFilename: undefined,
+      projectId: undefined
+    });
+    visionApiInitialized = true;
+    console.log('Vision API client initialized successfully');
   }
-
-  // Create a client with API key authentication
-  visionClient = new ImageAnnotatorClient({
-    apiEndpoint: 'vision.googleapis.com',
-    credentials: undefined,
-    keyFilename: undefined,
-    projectId: undefined
-  });
-
-  console.log('Vision API client initialized successfully');
 } catch (error) {
   console.error('Failed to initialize Vision API client:', error);
-  throw error; // Re-throw to prevent the app from starting with invalid configuration
+  // Don't re-throw - we'll handle this gracefully
 }
 
 /**
@@ -33,6 +34,10 @@ try {
  */
 export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> => {
   try {
+    if (!visionApiInitialized || !visionClient) {
+      throw new Error('Vision API client not initialized. Check API key configuration.');
+    }
+
     console.log('Starting image analysis with Google Cloud Vision API');
     
     const [result] = await visionClient.annotateImage({
