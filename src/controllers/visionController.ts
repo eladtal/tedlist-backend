@@ -32,7 +32,7 @@ export const analyzeItemImage: RequestHandler = async (req: AuthRequest & { file
     const analysisResults = await analyzeImage(imageBuffer);
     console.log('Image analysis completed');
     
-    // Generate item details from analysis results
+    // Generate item details from analysis resultsd
     const itemDetails = generateItemDescription(analysisResults);
     console.log('Generated item details:', itemDetails);
     

@@ -105,10 +105,8 @@ app.use('/api/trading', tradingRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/images', imagesRouter);
 
-// Register Vision API routes with both path formats for compatibility
-console.log('Registering Vision API router...');
-app.use('/api/vision', visionRouter);  // Standard path with /api prefix
-app.use('/vision', visionRouter);      // Alternative path format (without /api prefix)
+// Register Vision API routes
+app.use('/api/vision', visionRouter);
 
 // API-only server configuration - no static file serving needed for React Native
 app.get('*', (req, res) => {

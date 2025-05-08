@@ -1,9 +1,4 @@
-// Add to your app.ts at the top level
-console.log('=============================================');
-console.log('SERVER STARTED WITH CODE VERSION: 20250508-VISION-FIX');  // Vision API fix marker
-console.log('=============================================');
-console.log('*** VISION API MIDDLEWARE FIX APPLIED ***');
-console.log('***     CHECKING ROUTER REGISTRATION    ***');
+// Import required modules
 
 import express from 'express';
 import cors from 'cors';
@@ -26,15 +21,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ROOT TEST ROUTE - Cannot be intercepted by other middleware
-app.get('/root-test', (req, res) => {
-  console.log('ROOT TEST ROUTE ACCESSED - THIS IS THE NEW CODE');
-  res.json({ 
-    message: 'This route confirms you are running the latest code with Vision API fixes',
-    timestamp: new Date().toISOString(),
-    visionApiFixApplied: true
-  });
-});
+// Server configuration
 
 // Handle image requests - redirect to S3 if file not found locally
 app.use('/uploads', (req, res, next) => {
