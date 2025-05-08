@@ -35,4 +35,8 @@ router.post('/analyze-url', auth, analyzeItemImageByUrl);
 router.post('/test/analyze', uploadToMemory.single('image'), analyzeItemImageTest);
 router.post('/test/analyze-url', analyzeItemImageByUrlTest);
 
+// Keep original endpoint paths for backward compatibility with existing clients
+router.post('/analyze-test', uploadToMemory.single('image'), analyzeItemImageTest);
+router.post('/analyze-url-test', analyzeItemImageByUrlTest);
+
 export default router;
