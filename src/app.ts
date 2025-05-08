@@ -1,3 +1,8 @@
+// Add to your app.ts at the top level
+console.log('=============================================');
+console.log('SERVER STARTED WITH CODE VERSION: 20250508-1');  // Use timestamp as version
+console.log('=============================================');
+
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
