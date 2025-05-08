@@ -42,6 +42,8 @@ app.use('/uploads', (req, res, next) => {
 // Add a custom middleware that will intercept and handle specific test routes
 // This runs before the standard routing middleware
 app.use((req, res, next) => {
+  console.log(`MIDDLEWARE: Request received for ${req.method} ${req.path}`);
+  
   // Handle specific test routes directly
   if (req.path === '/api/vision/test') {
     console.log('DIRECT HANDLER: Vision API test route accessed');
@@ -49,8 +51,21 @@ app.use((req, res, next) => {
       message: 'Vision API routes are working! (Direct middleware)',
       timestamp: new Date().toISOString(),
       hasVisionApiKey: !!process.env.GOOGLE_CLOUD_VISION_API_KEY,
+      hasServiceAccount: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
       path: req.path,
       method: req.method,
+    });
+  }
+  
+  // DIRECT HANDLER for our special test route
+  if (req.path === '/api/vision/direct-test') {
+    console.log('DIRECT HANDLER: Vision API direct-test route accessed');
+    return res.json({
+      message: 'This is a direct handler that bypasses the router system',
+      timestamp: new Date().toISOString(),
+      path: req.path,
+      method: req.method,
+      router: 'none - direct middleware'
     });
   }
   
