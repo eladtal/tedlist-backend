@@ -54,21 +54,11 @@ app.use((req, res, next) => {
     });
   }
   
-  // Handle the analyze-test endpoint
+  // Log Vision API analyze-test requests but allow them to proceed to the actual controller
   if (req.path === '/api/vision/analyze-test' && req.method === 'POST') {
-    console.log('DIRECT HANDLER: Vision API analyze-test route accessed');
-    // This is a placeholder response since we can't actually analyze images here
-    // But at least it will confirm the endpoint is accessible
-    return res.json({
-      success: true,
-      message: 'Vision API analyze-test endpoint is working (Direct middleware)',
-      data: {
-        title: 'Test Item',
-        description: 'This is a test response since we cannot analyze images in this middleware.',
-        category: 'Test',
-        condition: 'New',
-      }
-    });
+    console.log('Vision API analyze-test route accessed - forwarding to controller');
+    // Continue to the next middleware/route handler instead of returning mock data
+    return next();
   }
   
   // Regular test endpoint
