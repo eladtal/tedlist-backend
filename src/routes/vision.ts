@@ -1,6 +1,6 @@
 import express from 'express';
 import auth from '../middleware/auth';
-import { analyzeItemImage, analyzeItemImageByUrl } from '../controllers/visionController';
+import { analyzeItemImage, analyzeItemImageByUrl, analyzeItemImageTest, analyzeItemImageByUrlTest } from '../controllers/visionController';
 import { upload } from '../utils/storage';
 import multer from 'multer';
 
@@ -43,13 +43,13 @@ router.get('/debug', (req, res) => {
 router.post('/analyze', auth, uploadToMemory.single('image'), analyzeItemImage);
 
 // Route to analyze an uploaded image (no auth for testing)
-router.post('/analyze-test', uploadToMemory.single('image'), analyzeItemImage);
+router.post('/analyze-test', uploadToMemory.single('image'), analyzeItemImageTest);
 
 // Route to analyze an image by URL
 router.post('/analyze-url', auth, analyzeItemImageByUrl);
 
 // Route to analyze an image by URL (no auth for testing)
-router.post('/analyze-url-test', analyzeItemImageByUrl);
+router.post('/analyze-url-test', analyzeItemImageByUrlTest);
 
 // Ultra-simple test route with no dependencies or middleware
 router.get('/simple-test', (req, res) => {
