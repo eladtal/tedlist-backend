@@ -1,7 +1,9 @@
 // Add to your app.ts at the top level
 console.log('=============================================');
-console.log('SERVER STARTED WITH CODE VERSION: 20250508-1');  // Use timestamp as version
+console.log('SERVER STARTED WITH CODE VERSION: 20250508-VISION-FIX');  // Vision API fix marker
 console.log('=============================================');
+console.log('*** VISION API MIDDLEWARE FIX APPLIED ***');
+console.log('***     CHECKING ROUTER REGISTRATION    ***');
 
 import express from 'express';
 import cors from 'cors';
@@ -24,6 +26,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ROOT TEST ROUTE - Cannot be intercepted by other middleware
+app.get('/root-test', (req, res) => {
+  console.log('ROOT TEST ROUTE ACCESSED - THIS IS THE NEW CODE');
+  res.json({ 
+    message: 'This route confirms you are running the latest code with Vision API fixes',
+    timestamp: new Date().toISOString(),
+    visionApiFixApplied: true
+  });
+});
+
 // Handle image requests - redirect to S3 if file not found locally
 app.use('/uploads', (req, res, next) => {
   // Try to serve from local directory first (for backward compatibility)
@@ -42,6 +54,17 @@ app.use('/uploads', (req, res, next) => {
     }
     next();
   });
+});
+
+// Debug middleware to log all incoming requests
+app.use((req, res, next) => {
+  console.log(`============= REQUEST DEBUG [${new Date().toISOString()}] =============`);
+  console.log(`${req.method} ${req.path}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Query:', JSON.stringify(req.query, null, 2));
+  console.log('Body:', req.body ? '(body present)' : '(no body)');
+  console.log('=================================================================');
+  next();
 });
 
 // Add a custom middleware that will intercept and handle specific test routes
@@ -103,9 +126,33 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/deals', dealsRouter);
 app.use('/api/admin', adminRouter);
 
+// Add direct test routes that bypass the router system entirely
+app.get('/debug-direct-test', (req, res) => {
+  console.log('DIRECT APP TEST ROUTE ACCESSED (bypassing all routers)');
+  res.json({
+    message: 'Direct test route works (no router involved)',
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    url: req.url,
+    method: req.method,
+    baseUrl: req.baseUrl,
+    envVars: {
+      NODE_ENV: process.env.NODE_ENV,
+      hasServiceAccount: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      hasProjectId: !!process.env.GOOGLE_CLOUD_PROJECT_ID,
+    }
+  });
+});
+
+// Debug Vision router registration
+console.log('======= REGISTERING VISION ROUTER =======');
+console.log('visionRouter routes:', Object.keys(visionRouter.stack || {}).length || 'unknown');
+
 // Register Vision API routes at BOTH paths to handle incorrect frontend URLs
 app.use('/api/vision', visionRouter);  // Correct path with /api prefix
 app.use('/vision', visionRouter);      // Also register at incorrect path for compatibility
+
+console.log('Vision router registered at: /api/vision and /vision');
 
 // Connect to MongoDB
 mongoose.connect(config.mongoUri)

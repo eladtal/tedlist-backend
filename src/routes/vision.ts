@@ -20,7 +20,8 @@ router.get('/test', (req, res) => {
   res.json({ 
     message: 'Vision API routes are working!', 
     timestamp: new Date().toISOString(),
-    apiKeyConfigured: !!process.env.GOOGLE_CLOUD_VISION_API_KEY
+    serviceAccountConfigured: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || 'not set'
   });
 });
 
@@ -32,7 +33,9 @@ router.get('/debug', (req, res) => {
     message: 'Vision API debug info', 
     headers: req.headers,
     env: process.env.NODE_ENV,
-    hasGoogleCredentials: !!process.env.GOOGLE_CLOUD_VISION_API_KEY || !!process.env.GOOGLE_APPLICATION_CREDENTIALS
+    hasServiceAccount: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    credentialsPath: process.env.GOOGLE_APPLICATION_CREDENTIALS || 'not set',
+    projectId: process.env.GOOGLE_CLOUD_PROJECT_ID || 'not set'
   });
 });
 
