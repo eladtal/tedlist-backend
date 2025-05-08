@@ -1,6 +1,8 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import { GoogleAuth } from 'google-auth-library';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 // Import node-fetch with a more compatible approach for TypeScript
 // @ts-ignore
 const fetch = require('node-fetch');
@@ -11,12 +13,22 @@ dotenv.config();
 let visionClient: ImageAnnotatorClient | null = null;
 let visionApiInitialized = false;
 
+// Check for Render's secret file location
+const renderSecretPath = '/etc/secrets/tedlist-vision';
+let effectiveCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+// If we're in production and the Render secret file exists, use it
+if (process.env.NODE_ENV === 'production' && fs.existsSync(renderSecretPath)) {
+  console.log(`Found Render secret file at: ${renderSecretPath}`);
+  effectiveCredentialsPath = renderSecretPath;
+  // Override the environment variable for the Google client library to use
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = renderSecretPath;
+}
+
 try {
   // Check for service account credentials file first (preferred method)
-  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-  
-  if (credentialsPath) {
-    console.log(`Using Google service account credentials from: ${credentialsPath}`);
+  if (effectiveCredentialsPath) {
+    console.log(`Using Google service account credentials from: ${effectiveCredentialsPath}`);
     // When using GOOGLE_APPLICATION_CREDENTIALS env var, no need to specify options
     // The client library will automatically use the credentials file
     visionClient = new ImageAnnotatorClient();
