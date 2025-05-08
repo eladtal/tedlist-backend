@@ -102,7 +102,10 @@ app.use('/api/trading', tradingRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/deals', dealsRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/vision', visionRouter);
+
+// Register Vision API routes at BOTH paths to handle incorrect frontend URLs
+app.use('/api/vision', visionRouter);  // Correct path with /api prefix
+app.use('/vision', visionRouter);      // Also register at incorrect path for compatibility
 
 // Connect to MongoDB
 mongoose.connect(config.mongoUri)
