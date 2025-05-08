@@ -12,9 +12,20 @@ let visionClient: ImageAnnotatorClient | null = null;
 let visionApiInitialized = false;
 
 try {
-  if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
-    console.warn('Warning: GOOGLE_CLOUD_VISION_API_KEY environment variable is not set');
-  } else {
+  // Check for service account credentials file first (preferred method)
+  const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+  
+  if (credentialsPath) {
+    console.log(`Using Google service account credentials from: ${credentialsPath}`);
+    // When using GOOGLE_APPLICATION_CREDENTIALS env var, no need to specify options
+    // The client library will automatically use the credentials file
+    visionClient = new ImageAnnotatorClient();
+    visionApiInitialized = true;
+    console.log('Vision API client initialized successfully using service account');
+  } 
+  // Fall back to API key if no service account is available
+  else if (process.env.GOOGLE_CLOUD_VISION_API_KEY) {
+    console.log('Using Google Cloud Vision API key authentication');
     // Create a client with API key authentication
     visionClient = new ImageAnnotatorClient({
       apiEndpoint: 'vision.googleapis.com',
@@ -23,7 +34,10 @@ try {
       projectId: undefined
     });
     visionApiInitialized = true;
-    console.log('Vision API client initialized successfully');
+    console.log('Vision API client initialized successfully using API key');
+  } 
+  else {
+    console.warn('Warning: Neither GOOGLE_APPLICATION_CREDENTIALS nor GOOGLE_CLOUD_VISION_API_KEY environment variables are set');
   }
 } catch (error) {
   console.error('Failed to initialize Vision API client:', error);
@@ -37,57 +51,87 @@ try {
  */
 export const analyzeImage = async (imageBuffer: Buffer | string): Promise<any> => {
   try {
-    if (!process.env.GOOGLE_CLOUD_VISION_API_KEY) {
-      throw new Error('Vision API key not configured');
-    }
-
     // This is a backup approach in case the Vision client initialization fails
-    // We'll directly call the API using fetch with the key parameter
     if (!visionApiInitialized || !visionClient) {
       console.warn('Vision API client not initialized. Attempting direct API call instead.');
       
-      // Make a direct API call to Vision API using fetch
-      const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
-      const visionApiUrl = 'https://vision.googleapis.com/v1/images:annotate';
+      // Check which authentication method is available
+      const hasServiceAccount = !!process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      const hasApiKey = !!process.env.GOOGLE_CLOUD_VISION_API_KEY;
       
-      const requestBody = {
-        requests: [{
-          image: {
-            content: typeof imageBuffer === 'string' ? imageBuffer : imageBuffer.toString('base64')
-          },
-          features: [
-            { type: 'LABEL_DETECTION', maxResults: 10 },
-            { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
-            { type: 'IMAGE_PROPERTIES' },
-            { type: 'WEB_DETECTION' },
-            { type: 'TEXT_DETECTION' }
-          ]
-        }]
-      };
-      
-      console.log('Making direct API call to Vision API');
-      
-      // Use node-fetch or another HTTP client in Node.js environment
-      // For simplicity, we're just showing the URL construction here
-      const fullUrl = `${visionApiUrl}?key=${apiKey}`;
-      console.log(`Calling Vision API at: ${visionApiUrl} (with API key)`); 
-      
-      // Make the actual API call
-      const response = await fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Vision API direct call failed:', errorText);
-        throw new Error(`Vision API request failed: ${response.status} ${response.statusText}`);
+      if (!hasServiceAccount && !hasApiKey) {
+        throw new Error('Neither service account credentials nor API key are configured');
       }
       
-      const data = await response.json() as { responses: any[] };
-      console.log('Direct Vision API call succeeded');
-      return data.responses[0];
+      // If we have API key, use it for direct API call
+      if (hasApiKey) {
+        console.log('Using API key for direct Vision API call');
+        
+        // Make a direct API call to Vision API using fetch with API key
+        const apiKey = process.env.GOOGLE_CLOUD_VISION_API_KEY;
+        const visionApiUrl = 'https://vision.googleapis.com/v1/images:annotate';
+        
+        const requestBody = {
+          requests: [{
+            image: {
+              content: typeof imageBuffer === 'string' ? imageBuffer : imageBuffer.toString('base64')
+            },
+            features: [
+              { type: 'LABEL_DETECTION', maxResults: 10 },
+              { type: 'OBJECT_LOCALIZATION', maxResults: 10 },
+              { type: 'IMAGE_PROPERTIES' },
+              { type: 'WEB_DETECTION' },
+              { type: 'TEXT_DETECTION' }
+            ]
+          }]
+        };
+        
+        // Make the actual API call
+        const fullUrl = `${visionApiUrl}?key=${apiKey}`;
+        console.log(`Calling Vision API at: ${visionApiUrl} (with API key)`);
+        
+        const response = await fetch(fullUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody)
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Vision API direct call failed:', errorText);
+          throw new Error(`Vision API request failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json() as { responses: any[] };
+        console.log('Direct Vision API call succeeded');
+        return data.responses[0];
+      } else {
+        // If we only have service account, we need to create a new client here
+        console.log('Attempting to create a new Vision client with service account credentials');
+        try {
+          // Create a new client instance using service account
+          const tempClient = new ImageAnnotatorClient();
+          
+          // Make the request using the temporary client
+          const [result] = await tempClient.annotateImage({
+            image: {
+              content: Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : imageBuffer
+            },
+            features: [
+              { type: 'LABEL_DETECTION' },
+              { type: 'OBJECT_LOCALIZATION' },
+              { type: 'IMAGE_PROPERTIES' },
+              { type: 'TEXT_DETECTION' }
+            ],
+          });
+          
+          console.log('Vision API call with temporary client succeeded');
+          return result;
+        } catch (tempClientError: any) {
+          console.error('Failed to use temporary client with service account:', tempClientError);
+          throw new Error(`Vision API service account error: ${tempClientError.message}`);
+        }
+      }
     }
     
     console.log('Starting image analysis with Google Cloud Vision API');
