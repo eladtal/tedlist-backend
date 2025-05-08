@@ -48,4 +48,17 @@ router.post('/analyze-url', auth, analyzeItemImageByUrl);
 // Route to analyze an image by URL (no auth for testing)
 router.post('/analyze-url-test', analyzeItemImageByUrl);
 
+// Ultra-simple test route with no dependencies or middleware
+router.get('/simple-test', (req, res) => {
+  console.log('SIMPLE TEST ROUTE ACCESSED');
+  res.json({
+    message: 'Simple Vision API test route',
+    timestamp: new Date().toISOString(),
+    path: req.path,
+    method: req.method,
+    hasServiceAccount: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
+    hasApiKey: !!process.env.GOOGLE_CLOUD_VISION_API_KEY
+  });
+});
+
 export default router;
