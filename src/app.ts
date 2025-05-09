@@ -16,9 +16,25 @@ import { getPublicUrl } from './utils/s3Storage';
 
 const app = express();
 
-// Simplified CORS configuration for Flutter web app
+// Super permissive CORS configuration for Flutter web app testing
+// WARNING: This is for development and testing only
+// In production, you should restrict origins appropriately
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Expose-Headers', 'Content-Length, Content-Type');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).send();
+  }
+  next();
+});
+
+// Standard CORS middleware as backup
 const corsOptions = {
-  origin: '*', // Allow all origins for testing
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
