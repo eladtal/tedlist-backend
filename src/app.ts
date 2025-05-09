@@ -16,36 +16,9 @@ import { getPublicUrl } from './utils/s3Storage';
 
 const app = express();
 
-// CORS Configuration for Flutter web app
+// Simplified CORS configuration for Flutter web app
 const corsOptions = {
-  // Use a function to validate origins instead of wildcards (which don't work properly)
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) {
-      return callback(null, true);
-    }
-    
-    // List of allowed origin patterns
-    const allowedOrigins = [
-      /^https?:\/\/localhost(:[0-9]+)?$/,     // localhost with any port
-      /^https?:\/\/127\.0\.0\.1(:[0-9]+)?$/,  // 127.0.0.1 with any port
-      /^https:\/\/.*\.web\.app$/,             // Firebase hosting domains
-      /^https:\/\/.*\.firebaseapp\.com$/,      // Firebase hosting domains
-      /^https?:\/\/tedlist-flutter\.web\.app$/  // Our specific Flutter web app domain
-    ];
-    
-    // Check if the origin matches any allowed pattern
-    const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
-    
-    if (isAllowed) {
-      // Origin is allowed
-      callback(null, true);
-    } else {
-      // Origin is not allowed
-      console.log(`CORS blocked request from origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS policy`));
-    }
-  },
+  origin: '*', // Allow all origins for testing
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
   exposedHeaders: ['Content-Length', 'Content-Type'],
