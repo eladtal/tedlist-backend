@@ -36,6 +36,18 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Add a simple test endpoint that returns basic response to check connectivity
+app.get('/api/test-endpoint', (req, res) => {
+  console.log('Test endpoint hit from:', req.headers.origin);
+  res.json({
+    success: true,
+    message: 'Backend is accessible',
+    cors: 'enabled',
+    timestamp: new Date().toISOString(),
+    headers: req.headers
+  });
+});
+
 // Server configuration
 
 // Handle image requests - redirect to S3 if file not found locally
