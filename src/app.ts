@@ -174,6 +174,56 @@ app.get('/debug-direct-test', (req, res) => {
   });
 });
 
+// Vision API debug endpoint
+app.get('/api/vision/debug-routes', (req, res) => {
+  console.log('Vision API debug-routes endpoint accessed');
+  
+  // List all registered routes
+  const routes: any[] = [];
+  
+  // Extract routes from the main app
+  app._router.stack.forEach((middleware: any) => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      routes.push({
+        path: middleware.route.path,
+        methods: Object.keys(middleware.route.methods).join(', '),
+        source: 'app direct'
+      });
+    } else if (middleware.name === 'router' && middleware.handle.stack) {
+      // Routes registered via routers
+      const path = middleware.regexp.toString().replace('/^\\', '').replace('\\/?(?=\\/|$)/i', '');
+      
+      middleware.handle.stack.forEach((handler: any) => {
+        if (handler.route) {
+          routes.push({
+            path: path + handler.route.path,
+            methods: Object.keys(handler.route.methods).join(', '),
+            source: 'router'
+          });
+        }
+      });
+    }
+  });
+  
+  res.json({
+    message: 'Vision API debug routes',
+    timestamp: new Date().toISOString(),
+    visionEndpoints: {
+      analyze: '/api/vision/analyze',
+      analyzeUrl: '/api/vision/analyze-url',
+      openaiAnalyze: '/api/vision/openai/analyze',
+      openaiAnalyzeUrl: '/api/vision/openai/analyze-url',
+      testAnalyze: '/api/vision/test/analyze',
+      testAnalyzeUrl: '/api/vision/test/analyze-url',
+      testOpenaiAnalyze: '/api/vision/test/openai/analyze',
+      testOpenaiAnalyzeUrl: '/api/vision/test/openai/analyze-url',
+    },
+    registeredRoutes: routes.filter(r => r.path.includes('vision')),
+    openaiConfigured: !!process.env.OPENAI_API_KEY,
+  });
+});
+
 // Debug Vision router registration
 console.log('======= REGISTERING VISION ROUTER =======');
 console.log('visionRouter routes:', Object.keys(visionRouter.stack || {}).length || 'unknown');

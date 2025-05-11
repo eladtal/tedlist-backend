@@ -22,12 +22,19 @@ try {
   console.error('Failed to initialize OpenAI client:', error);
 }
 
+// Define the analysis result type
+interface AnalysisResult {
+  analysis: string;
+  model: string;
+  usage: any;
+}
+
 /**
  * Analyze an image using OpenAI Vision API
  * @param imageBuffer - Raw image buffer data or base64 encoded image or image URL
  * @returns Object with analysis results
  */
-export const analyzeImageWithOpenAI = async (imageInput: Buffer | string): Promise<any> => {
+export const analyzeImageWithOpenAI = async (imageInput: Buffer | string): Promise<AnalysisResult> => {
   try {
     if (!openaiApiInitialized || !openaiClient) {
       throw new Error('OpenAI client not initialized. Please check your API key.');
@@ -79,7 +86,7 @@ export const analyzeImageWithOpenAI = async (imageInput: Buffer | string): Promi
     }
 
     return {
-      analysis: response.choices[0].message.content,
+      analysis: response.choices[0].message.content || 'No analysis available',
       model: response.model,
       usage: response.usage
     };
@@ -96,7 +103,7 @@ export const analyzeImageWithOpenAI = async (imageInput: Buffer | string): Promi
  * @param analysisResult - Results from the OpenAI Vision API
  * @returns Object with generated item properties
  */
-export const generateItemDetailsFromOpenAI = async (analysisResult: any): Promise<any> => {
+export const generateItemDetailsFromOpenAI = async (analysisResult: AnalysisResult): Promise<any> => {
   try {
     if (!openaiApiInitialized || !openaiClient) {
       throw new Error('OpenAI client not initialized. Please check your API key.');
@@ -138,7 +145,7 @@ export const generateItemDetailsFromOpenAI = async (analysisResult: any): Promis
     }
 
     // Parse the JSON response
-    const structuredData = JSON.parse(response.choices[0].message.content);
+    const structuredData = JSON.parse(response.choices[0].message.content || '{}');
 
     return {
       ...structuredData,
