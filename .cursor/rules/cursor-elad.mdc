@@ -1,0 +1,75 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+"Think step by step about whether a simpler, more elegant, and robust solution exists that avoids over-engineering while aligning with KISS, YAGNI, DRY, and SOLID principles. Present your solution along with your confidence level (1–10) and a rationale, but do not modify the code yet."
+
+## ✅ General Principles
+
+- **Avoid duplication**  
+  Before writing new code, *search first*. Don't reimplement logic that already exists.
+
+- **Don’t reinvent**  
+  Reuse or extend existing components, utilities, and patterns.
+
+- **Keep code clean**  
+  Write clear, readable, and intentional code. Leave room to breathe.
+
+- **Minimal footprint**  
+  Only touch what’s required. No collateral damage.
+
+- never overwrite or delete my .env file without asking and confirming
+
+---
+
+## 🔧 Fixing Bugs or Making Changes
+
+- **Understand before fixing**  
+  Don’t patch symptoms. Investigate the root cause.
+
+- **Stick to existing patterns**  
+  Don’t introduce new libraries, paradigms, or technologies unless no existing solution fits.
+
+- **Preserve local conventions**  
+  Match existing formatting, structure, and naming around the code you’re changing.
+
+- **Test adjacent functionality**  
+  Confirm your fix doesn’t break related behavior.
+
+- **Leave it better than you found it**  
+  Tiny cleanups (naming, indentation, doc comments) are always welcome if safe.
+
+---
+
+## ✨ Creating New Code
+
+- **Small, focused components**  
+  Functions/components should do one thing well.
+
+- **Clear, meaningful names**  
+  Name things by *what* they do, not *how* they do it.
+
+- **Co-locate logic and styles**  
+  Keep component files self-contained where possible.
+
+- **DRY over clever**  
+  Prefer maintainable over magical.
+
+---
+
+## 🧹 Housekeeping
+
+- **Delete unused code**  
+  No commented-out leftovers unless they’re temporary *with a reason*.
+
+- **No TODO bombs**  
+  If you must, write:  
+  `// TODO(elad) – handle edge case when user has no items [2025-05-04]`
+
+- **No `console.log` in production**  
+  Use proper logging or remove before merge.
+
+- **Comment the why, not the what**  
+  Assume the code explains itself. Use comments for intent, not repetition.
+

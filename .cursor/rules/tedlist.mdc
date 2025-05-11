@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🎯 Purpose
+Tedlist is a gamified peer-to-peer trade-in platform that allows users to list items they own and browse items from others, with the goal of arranging mutually beneficial trades — no money involved.
+
+🧱 Core Features
+User Accounts
+
+Sign up/login with email or OAuth
+
+Profile: picture, bio, location, items listed, trade history
+
+Reputation: badges, ratings, achievement stats
+
+Item Listings
+
+Upload item (images, category, title, condition, tags)
+
+Set trade preferences (what types of items you want in return)
+
+View others’ items in grid/list feed
+
+Trade Offers
+
+Users can send an offer: “I’ll trade my X for your Y”
+
+Recipient can accept, counter, or decline
+
+No in-app chat; trades are handled with offer/counteroffer interface
+
+Teddies Coin System
+
+Users earn Teddies Coins for actions (e.g. registering, uploading, completing trades)
+
+Coins can be used for cosmetic rewards or optional perks (e.g. feature listing)
+
+No real-money purchases — it’s a closed reward system
+
+Achievements & Badges
+
+Examples: “First Trade”, “10 Items Listed”, “Eco Hero”
+
+Non-functional but visible on user profile (social reward)
+
+Onboarding Flow
+
+After signup: animation + 50 coins
+
+Prompt to upload first item → animation + 30 coins
+
+Prompt to explore items or complete a trade offer
+
+Progress Tracker
+
+Visual indicator of onboarding status (e.g., “Step 2 of 3”)
+
+Used only during onboarding, not persistent
+
+Community Sharing
+
+Built-in share buttons to WhatsApp, Instagram, etc.
+
+"Show off your trade!" post-trade prompts with branded images/text
+
+🖼️ Visual Design & UX
+Vibe: Playful, gamified, youth-friendly (target: Gen Z & Y)
+
+Color Palette:
+
+Primary: #EF5350 (Teddy Red), #B2F2BB (Mint Byte)
+
+Backgrounds: #FAF9F6 (Eggshell), #FFF3B0 (Banana Cream)
+
+Text: #3E3C3A (Teddy Brown), Accents: #4A6FA5 (Denim Trade)
+
+Fonts: Rounded, friendly sans-serif
+
+Animations: Light and rewarding — coin burst, item drop-in, progress confirmation
+
+No sound, no haptic feedback
+
+No swipe UI — item discovery happens through grid or list views with filters and sorting
+
+⚙️ App Behavior & Logic
+Only mutual interest leads to trade: Trades are manually offered and confirmed.
+
+No monetary transactions allowed
+
+Moderation system: Reporting items or users, and automated flagging of abusive content
+
+Daily login or action streaks can optionally reward coins or badges (TBD)
+
+

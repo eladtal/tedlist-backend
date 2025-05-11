@@ -1,6 +1,12 @@
 import express from 'express';
 import auth from '../middleware/auth';
 import { analyzeItemImage, analyzeItemImageByUrl, analyzeItemImageTest, analyzeItemImageByUrlTest } from '../controllers/visionController';
+import { 
+  analyzeItemImageWithOpenAI, 
+  analyzeItemImageWithOpenAITest, 
+  analyzeItemImageByUrlWithOpenAI, 
+  analyzeItemImageByUrlWithOpenAITest 
+} from '../controllers/openaiVisionController';
 import { upload } from '../utils/storage';
 import multer from 'multer';
 
@@ -20,20 +26,30 @@ router.get('/status', (req, res) => {
   res.json({ 
     status: 'online',
     serviceAccountConfigured: !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
-    apiKeyConfigured: !!process.env.GOOGLE_CLOUD_VISION_API_KEY
+    apiKeyConfigured: !!process.env.GOOGLE_CLOUD_VISION_API_KEY,
+    openaiApiConfigured: !!process.env.OPENAI_API_KEY
   });
 });
 
+// Google Vision API routes
 // Route to analyze an uploaded image
 router.post('/analyze', auth, uploadToMemory.single('image'), analyzeItemImage);
 
 // Main production routes with authentication
 router.post('/analyze-url', auth, analyzeItemImageByUrl);
 
+// OpenAI Vision API routes
+router.post('/openai/analyze', auth, uploadToMemory.single('image'), analyzeItemImageWithOpenAI);
+router.post('/openai/analyze-url', auth, analyzeItemImageByUrlWithOpenAI);
+
 // Test endpoints (keeping one test endpoint for each method for troubleshooting)
 // These don't require authentication and are useful for testing and debugging
 router.post('/test/analyze', uploadToMemory.single('image'), analyzeItemImageTest);
 router.post('/test/analyze-url', analyzeItemImageByUrlTest);
+
+// OpenAI Vision API test routes
+router.post('/test/openai/analyze', uploadToMemory.single('image'), analyzeItemImageWithOpenAITest);
+router.post('/test/openai/analyze-url', analyzeItemImageByUrlWithOpenAITest);
 
 // Keep original endpoint paths for backward compatibility with existing clients
 router.post('/analyze-test', uploadToMemory.single('image'), analyzeItemImageTest);
