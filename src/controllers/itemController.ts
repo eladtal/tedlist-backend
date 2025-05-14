@@ -21,7 +21,8 @@ interface CreateItemRequest extends Request {
 // Get all items
 export const getAllItems: RequestHandler = async (req: Request, res: Response) => {
   try {
-    const items = await Item.find().populate('userId', 'name');
+    // Populate name and email from the referenced user document
+    const items = await Item.find().populate('userId', 'name email');
     
     if (!items || items.length === 0) {
       return res.json({
@@ -30,21 +31,31 @@ export const getAllItems: RequestHandler = async (req: Request, res: Response) =
       });
     }
 
-    const formattedItems = items.map(item => ({
-      _id: item._id.toString(),
-      title: item.title,
-      description: item.description,
-      images: item.images,
-      condition: item.condition,
-      type: item.type,
-      status: item.status,
-      createdAt: item.createdAt,
-      user: {
-        name: item.userId ? (item.userId as any).name : 'Unknown User',
-        _id: item.userId ? item.userId.toString() : 'unknown'
-      },
-      teddyBonus: item.teddyBonus || Math.floor(Math.random() * 10) + 1
-    }));
+    const formattedItems = items.map(item => {
+      // Ensure userId is populated and has the expected fields
+      const userObject = item.userId as any; // Cast to any to access populated fields
+      return {
+        _id: item._id.toString(),
+        title: item.title,
+        description: item.description,
+        images: item.images,
+        condition: item.condition,
+        type: item.type,
+        status: item.status,
+        createdAt: item.createdAt,
+        // Construct the 'owner' field as expected by the frontend
+        owner: userObject ? {
+          _id: userObject._id ? userObject._id.toString() : 'unknown',
+          name: userObject.name || 'Unknown User',
+          email: userObject.email || 'no-email@example.com' // Provide a fallback or handle missing email
+        } : {
+          _id: 'unknown',
+          name: 'Unknown User',
+          email: 'no-email@example.com'
+        },
+        teddyBonus: item.teddyBonus || Math.floor(Math.random() * 10) + 1
+      };
+    });
 
     res.json({
       success: true,
