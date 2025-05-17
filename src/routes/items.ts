@@ -1,6 +1,6 @@
 import express from 'express';
 import auth from '../middleware/auth';
-import { getAllItems, createItem, deleteItem, getUserItems, getAvailableItems, uploadImage, getPotentialTrades } from '../controllers/itemController';
+import { getAllItems, createItem, deleteItem, getUserItems, getAvailableItems, uploadImage, getPotentialTrades, getUserItemsForTrading } from '../controllers/itemController';
 import { upload } from '../utils/storage';
 import multer from 'multer';
 
@@ -18,6 +18,7 @@ const uploadToMemory = multer({
 // Routes
 router.get('/', getAllItems);
 router.get('/user', auth, getUserItems);
+router.get('/user/trading', auth, getUserItemsForTrading);
 router.get('/available', auth, getAvailableItems);
 router.get('/potential-trades/:id', auth, getPotentialTrades);
 router.post('/', auth, uploadToMemory.array('images', 5), createItem);

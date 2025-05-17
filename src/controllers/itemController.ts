@@ -424,3 +424,63 @@ export const getPotentialTrades: RequestHandler = async (req: AuthRequest, res: 
     });
   }
 };
+
+// Get user's items specifically for trading screen
+export const getUserItemsForTrading: RequestHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    // Get only items that belong to the current user and are available for trade
+    const items = await Item.find({ 
+      userId: req.user._id,
+      status: 'available'
+    }).populate('userId', 'name');
+    
+    // Get the base URL from the request for image formatting
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    
+    // Format items in the exact way expected by the trading screen
+    const formattedItems = items.map(item => {
+      // Process images to ensure they're properly formatted
+      const processedImages = (item.images || [])
+        .filter(image => typeof image === 'string' && image.length > 0)
+        .map(image => {
+          // Remove any existing base URL to prevent duplication
+          const cleanPath = image.replace(baseUrl, '').replace(/^\/+/, '');
+          // Ensure the path starts with /uploads/ if it doesn't include it
+          const normalizedPath = cleanPath.startsWith('uploads/') ? `/${cleanPath}` : `/uploads/${cleanPath}`;
+          return `${baseUrl}${normalizedPath}`;
+        });
+      
+      return {
+        _id: item._id.toString(),
+        title: item.title,
+        description: item.description,
+        images: processedImages,
+        condition: item.condition,
+        type: item.type,
+        status: item.status,
+        user: {
+          name: item.userId ? (item.userId as any).name : 'Unknown User',
+          _id: item.userId.toString()
+        },
+        // Always include teddyBonus for trading
+        teddyBonus: item.teddyBonus || Math.floor(Math.random() * 10) + 1
+      };
+    });
+
+    // Return items directly as an array - not wrapped in an object
+    res.json(formattedItems);
+  } catch (error) {
+    console.error('Error in getUserItemsForTrading:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Error fetching user items for trading'
+    });
+  }
+};
