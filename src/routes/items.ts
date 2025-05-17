@@ -1,6 +1,6 @@
 import express from 'express';
 import auth from '../middleware/auth';
-import { getAllItems, createItem, deleteItem, getUserItems, getAvailableItems, uploadImage } from '../controllers/itemController';
+import { getAllItems, createItem, deleteItem, getUserItems, getAvailableItems, uploadImage, getPotentialTrades } from '../controllers/itemController';
 import { upload } from '../utils/storage';
 import multer from 'multer';
 
@@ -19,6 +19,7 @@ const uploadToMemory = multer({
 router.get('/', getAllItems);
 router.get('/user', auth, getUserItems);
 router.get('/available', auth, getAvailableItems);
+router.get('/potential-trades/:id', auth, getPotentialTrades);
 router.post('/', auth, uploadToMemory.array('images', 5), createItem);
 router.delete('/:id', auth, deleteItem);
 // Use memory storage for S3 upload instead of disk storage

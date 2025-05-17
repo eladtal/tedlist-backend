@@ -356,3 +356,71 @@ export const uploadImage: RequestHandler = async (req: AuthRequest & { file?: Ex
     });
   }
 };
+
+// Get potential trades for an item
+export const getPotentialTrades: RequestHandler = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.user?._id) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    const itemId = req.params.id;
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        error: 'Item not found'
+      });
+    }
+
+    // Get items that:
+    // 1. Are not owned by the current user
+    // 2. Are available for trade
+    // 3. Match the category/type of the item being traded (if specified)
+    const items = await Item.find({
+      userId: { $ne: req.user._id },
+      status: 'available',
+      // Add category matching if needed
+      // category: item.category
+    }).populate('userId', 'name email');
+
+    const formattedItems = items.map(item => {
+      const userObject = item.userId as any;
+      return {
+        _id: item._id.toString(),
+        title: item.title,
+        description: item.description,
+        images: item.images,
+        condition: item.condition,
+        type: item.type,
+        status: item.status,
+        createdAt: item.createdAt,
+        owner: userObject ? {
+          _id: userObject._id.toString(),
+          name: userObject.name || 'Unknown User',
+          email: userObject.email || 'no-email@example.com'
+        } : {
+          _id: 'unknown',
+          name: 'Unknown User',
+          email: 'no-email@example.com'
+        },
+        teddyBonus: item.teddyBonus || Math.floor(Math.random() * 10) + 1
+      };
+    });
+
+    res.json({
+      success: true,
+      items: formattedItems
+    });
+  } catch (error) {
+    console.error('Error in getPotentialTrades:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Error fetching potential trades'
+    });
+  }
+};
