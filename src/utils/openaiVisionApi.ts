@@ -63,7 +63,7 @@ export const analyzeImageWithOpenAI = async (imageInput: Buffer | string): Promi
       messages: [
         {
           role: "system",
-          content: "You are an expert at analyzing images of items and providing detailed descriptions. Focus on identifying the item, its condition, features, brand if visible, and any text that appears in the image."
+          content: "You are an expert product analyst specializing in brand identification and value assessment. When analyzing images:\n1. PRIORITIZE identifying the brand name - look for logos, text, design patterns, and distinctive features that indicate the manufacturer or brand\n2. Determine the product type, model, and specific variant if possible\n3. Assess the condition, features, materials, and any visible text\n4. Look for indicators of authenticity or counterfeit status\n5. Note any unique selling points or special editions"
         },
         {
           role: "user",
@@ -118,7 +118,7 @@ export const generateItemDetailsFromOpenAI = async (analysisResult: AnalysisResu
       messages: [
         {
           role: "system",
-          content: "You are an expert at extracting structured information from text descriptions of items."
+          content: "You are an expert at extracting structured information from text descriptions of items, with particular expertise in brand identification and market value estimation."
         },
         {
           role: "user",
@@ -128,10 +128,20 @@ export const generateItemDetailsFromOpenAI = async (analysisResult: AnalysisResu
             "description": "A detailed description of the item (2-3 sentences)",
             "category": "One of: Electronics, Clothing, Furniture, Kitchen, Books, Toys, Sports, Home Decor, or Other",
             "condition": "One of: New, Like New, Good, Fair, Poor",
-            "brand": "Brand name if identifiable, otherwise null",
-            "estimatedValue": "Estimated value range in USD if possible, otherwise null",
+            "brand": "The brand name if identifiable. If uncertain, provide your best guess",
+            "brandConfidence": "High, Medium, or Low - how certain you are about the brand identification",
+            "model": "Specific model name/number if identifiable",
+            "estimatedValue": "A specific price range in USD based on the item's characteristics",
+            "valueJustification": "Brief explanation of how you determined the value estimate",
             "keywords": ["array", "of", "relevant", "keywords"]
           }
+          
+          Important guidelines:
+          1. For brand identification: Look for logos, design patterns, signature styles, and manufacturing marks
+          2. For value estimation: Consider brand reputation (luxury vs budget), condition, model, age, and current market trends
+          3. Be specific with price ranges (e.g., "$50-75" not "moderate value")
+          4. For high-end brands (Apple, Samsung, Nike, Louis Vuitton, etc.), be more precise about value based on specific models
+          5. Provide justification for your value estimate in the valueJustification field
           
           Analysis text: ${analysisText}`
         },
@@ -147,10 +157,15 @@ export const generateItemDetailsFromOpenAI = async (analysisResult: AnalysisResu
     // Parse the JSON response
     const structuredData = JSON.parse(response.choices[0].message.content || '{}');
 
-    return {
+    // Add brand detection confidence metrics
+    const enhancedData = {
       ...structuredData,
-      aiAnalysis: analysisText // Include the original analysis for reference
+      aiAnalysis: analysisText, // Include the original analysis for reference
+      brandDetected: !!structuredData.brand && structuredData.brand !== 'null' && structuredData.brand !== 'unknown',
+      valueConfidence: structuredData.valueJustification ? 'high' : 'low'
     };
+    
+    return enhancedData;
   } catch (error) {
     console.error('Error generating structured item details:', error);
     return {
@@ -159,9 +174,14 @@ export const generateItemDetailsFromOpenAI = async (analysisResult: AnalysisResu
       category: 'Other',
       condition: 'Good',
       brand: null,
+      brandConfidence: 'Low',
+      model: null,
       estimatedValue: null,
+      valueJustification: null,
       keywords: [],
+      brandDetected: false,
+      valueConfidence: 'low',
       aiAnalysis: analysisResult.analysis || 'Analysis not available'
     };
   }
-}; 
+};
